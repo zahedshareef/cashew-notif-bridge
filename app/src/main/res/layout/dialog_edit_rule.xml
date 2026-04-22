@@ -10,6 +10,8 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- ── Match conditions ────────────────────────────────────────────── -->
+
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -54,7 +56,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Body Contains (optional)"
-            android:layout_marginBottom="8dp"
+            android:layout_marginBottom="4dp"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_body_contains"
@@ -62,6 +64,42 @@
                 android:layout_height="wrap_content"
                 android:inputType="text" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Condition logic AND / OR (#10) -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Match conditions using:"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/toggle_condition_logic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:singleSelection="true"
+            xmlns:app="http://schemas.android.com/apk/res-auto">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_logic_and"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ALL (AND)"
+                android:textSize="12sp"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_logic_or"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ANY (OR)"
+                android:textSize="12sp"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
+
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <!-- ── Regex extraction ───────────────────────────────────────────── -->
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
@@ -131,7 +169,7 @@
                 android:text="0" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Auto-detect income/expense toggle -->
+        <!-- Income / expense -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -144,30 +182,25 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical">
-
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Auto-detect Income/Expense"
                     android:textAppearance="?attr/textAppearanceBodyMedium" />
-
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Use keywords instead of the fixed toggle below"
                     android:textAppearance="?attr/textAppearanceBodySmall"
                     android:alpha="0.6" />
-
             </LinearLayout>
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switch_auto_detect"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
-
         </LinearLayout>
 
-        <!-- Fixed income/expense toggle (hidden when auto-detect is on) -->
         <LinearLayout
             android:id="@+id/layout_income_switch"
             android:layout_width="match_parent"
@@ -175,21 +208,146 @@
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:layout_marginBottom="12dp">
-
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Mark as Income" />
-
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switch_is_income"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <!-- ── Scheduling: Time Range + Days (#5) ────────────────────────── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="?attr/colorOutline"
+            android:alpha="0.3"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Active Hours (optional)"
+            android:textAppearance="?attr/textAppearanceTitleSmall"
+            android:layout_marginBottom="6dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Start Hour (0-23)"
+                android:layout_marginEnd="8dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_start_hour"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:hint="-1 = any" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="End Hour (0-23)"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_end_hour"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:hint="-1 = any" />
+            </com.google.android.material.textfield.TextInputLayout>
 
         </LinearLayout>
 
-        <!-- Test Rule section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Active Days (leave all unchecked = every day)"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_days"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:singleLine="false"
+            app:singleSelection="false"
+            xmlns:app="http://schemas.android.com/apk/res-auto">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_sun"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sun"
+                style="@style/Widget.MaterialComponents.Chip.Filter" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_mon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mon"
+                style="@style/Widget.MaterialComponents.Chip.Filter" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_tue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tue"
+                style="@style/Widget.MaterialComponents.Chip.Filter" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_wed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Wed"
+                style="@style/Widget.MaterialComponents.Chip.Filter" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_thu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Thu"
+                style="@style/Widget.MaterialComponents.Chip.Filter" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_fri"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Fri"
+                style="@style/Widget.MaterialComponents.Chip.Filter" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_sat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sat"
+                style="@style/Widget.MaterialComponents.Chip.Filter" />
+
+        </com.google.android.material.chip.ChipGroup>
+
+        <!-- Per-rule cooldown (#9) -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Per-Rule Cooldown (minutes, 0 = off)"
+            android:layout_marginBottom="12dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_cooldown_minutes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:text="0" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ── Test Rule ───────────────────────────────────────────────────── -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -235,7 +393,6 @@
             android:fontFamily="monospace"
             android:background="?attr/colorSurfaceVariant"
             android:padding="8dp"
-            android:visibility="visible"
             android:text="Results will appear here"
             android:alpha="0.6" />
 

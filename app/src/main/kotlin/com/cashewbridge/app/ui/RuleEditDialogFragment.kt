@@ -64,10 +64,39 @@ class RuleEditDialogFragment : DialogFragment() {
             binding.switchIsIncome.isChecked = rule.isIncome
             binding.switchAutoDetect.isChecked = rule.autoDetectType
             binding.etPriority.setText(rule.priority.toString())
-            // Show/hide income switch based on auto-detect
+
+            // Condition logic (#10)
+            if (rule.conditionLogic == 1) {
+                binding.toggleConditionLogic.check(R.id.btn_logic_or)
+            } else {
+                binding.toggleConditionLogic.check(R.id.btn_logic_and)
+            }
+
+            // Per-rule cooldown (#9)
+            binding.etCooldownMinutes.setText(rule.cooldownMinutes.toString())
+
+            // Time range (#5)
+            binding.etStartHour.setText(rule.activeStartHour.toString())
+            binding.etEndHour.setText(rule.activeEndHour.toString())
+
+            // Days of week bitmask (#5) — bit0=Sun bit1=Mon…bit6=Sat
+            binding.chipSun.isChecked = (rule.activeDaysOfWeek and 0b0000001) != 0
+            binding.chipMon.isChecked = (rule.activeDaysOfWeek and 0b0000010) != 0
+            binding.chipTue.isChecked = (rule.activeDaysOfWeek and 0b0000100) != 0
+            binding.chipWed.isChecked = (rule.activeDaysOfWeek and 0b0001000) != 0
+            binding.chipThu.isChecked = (rule.activeDaysOfWeek and 0b0010000) != 0
+            binding.chipFri.isChecked = (rule.activeDaysOfWeek and 0b0100000) != 0
+            binding.chipSat.isChecked = (rule.activeDaysOfWeek and 0b1000000) != 0
+
             binding.layoutIncomeSwitch.visibility =
                 if (rule.autoDetectType) View.GONE else View.VISIBLE
         } else {
+            // Default: AND logic selected
+            binding.toggleConditionLogic.check(R.id.btn_logic_and)
+            binding.etCooldownMinutes.setText("0")
+            binding.etStartHour.setText("-1")
+            binding.etEndHour.setText("-1")
+
             val prefillPackage = arguments?.getString(ARG_PREFILL_PACKAGE)
             val prefillAppLabel = arguments?.getString(ARG_PREFILL_APP_LABEL)
 
@@ -76,20 +105,17 @@ class RuleEditDialogFragment : DialogFragment() {
                 binding.etPackageName.isEnabled = false
                 binding.layoutPackageName.helperText = getString(R.string.package_auto_detected)
             }
-
             if (!prefillAppLabel.isNullOrBlank()) {
                 binding.etRuleName.setText(prefillAppLabel)
                 binding.etRuleName.selectAll()
             }
         }
 
-        // When auto-detect is toggled, show/hide the income switch
         binding.switchAutoDetect.setOnCheckedChangeListener { _, checked ->
             binding.layoutIncomeSwitch.visibility = if (checked) View.GONE else View.VISIBLE
         }
     }
 
-    /** Wires up the "Test Rule" section: paste text → see extracted amount/merchant. */
     private fun setupTestRule() {
         binding.btnTestRule.setOnClickListener {
             val sampleText = binding.etSampleText.text.toString().trim()
@@ -106,12 +132,24 @@ class RuleEditDialogFragment : DialogFragment() {
             val isIncome = NotificationParser.detectIncome(sampleText)
 
             val result = buildString {
-                append("Amount: ${if (amount != null) amount.toString() else getString(R.string.test_no_match)}\n")
+                append("Amount  : ${amount?.toString() ?: getString(R.string.test_no_match)}\n")
                 append("Merchant: ${merchant ?: getString(R.string.test_no_match)}\n")
-                append("Type: ${if (isIncome) "Income" else "Expense"} (keyword detection)")
+                append("Type    : ${if (isIncome) "Income" else "Expense"} (keyword detection)")
             }
             binding.tvTestResult.text = result
         }
+    }
+
+    private fun buildDaysBitmask(): Int {
+        var mask = 0
+        if (binding.chipSun.isChecked) mask = mask or 0b0000001
+        if (binding.chipMon.isChecked) mask = mask or 0b0000010
+        if (binding.chipTue.isChecked) mask = mask or 0b0000100
+        if (binding.chipWed.isChecked) mask = mask or 0b0001000
+        if (binding.chipThu.isChecked) mask = mask or 0b0010000
+        if (binding.chipFri.isChecked) mask = mask or 0b0100000
+        if (binding.chipSat.isChecked) mask = mask or 0b1000000
+        return mask
     }
 
     private fun saveRule() {
@@ -120,6 +158,11 @@ class RuleEditDialogFragment : DialogFragment() {
             binding.etRuleName.error = getString(R.string.required)
             return
         }
+
+        val conditionLogic = if (binding.toggleConditionLogic.checkedButtonId == R.id.btn_logic_or) 1 else 0
+        val cooldown = binding.etCooldownMinutes.text.toString().toIntOrNull()?.coerceAtLeast(0) ?: 0
+        val startHour = binding.etStartHour.text.toString().toIntOrNull() ?: -1
+        val endHour = binding.etEndHour.text.toString().toIntOrNull() ?: -1
 
         val rule = NotificationRule(
             id = existingRule?.id ?: 0,
@@ -134,7 +177,12 @@ class RuleEditDialogFragment : DialogFragment() {
             isIncome = binding.switchIsIncome.isChecked,
             autoDetectType = binding.switchAutoDetect.isChecked,
             priority = binding.etPriority.text.toString().toIntOrNull() ?: 0,
-            isEnabled = existingRule?.isEnabled ?: true
+            isEnabled = existingRule?.isEnabled ?: true,
+            conditionLogic = conditionLogic,
+            cooldownMinutes = cooldown,
+            activeStartHour = startHour,
+            activeEndHour = endHour,
+            activeDaysOfWeek = buildDaysBitmask()
         )
 
         val db = AppDatabase.getInstance(requireContext())

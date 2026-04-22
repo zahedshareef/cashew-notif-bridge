@@ -1,5 +1,7 @@
 package com.cashewbridge.app.ui
 
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Intent
 import android.os.Bundle
 import android.os.PowerManager
@@ -14,6 +16,7 @@ import com.cashewbridge.app.R
 import com.cashewbridge.app.databinding.ActivityMainBinding
 import com.cashewbridge.app.model.AppDatabase
 import com.cashewbridge.app.prefs.AppPreferences
+import com.cashewbridge.app.service.ReminderReceiver
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +62,16 @@ class MainActivity : AppCompatActivity() {
         }
         binding.switchEnabled.isChecked = prefs.isEnabled
 
+        // #2 Batch mode — show/hide the window field
+        binding.switchBatch.setOnCheckedChangeListener { _, checked ->
+            binding.layoutBatchWindow.visibility = if (checked) View.VISIBLE else View.GONE
+        }
+
+        // #3 Reminder — show/hide the interval field
+        binding.switchReminder.setOnCheckedChangeListener { _, checked ->
+            binding.layoutReminderInterval.visibility = if (checked) View.VISIBLE else View.GONE
+        }
+
         binding.btnSaveSettings.setOnClickListener { saveSettings() }
 
         // Theme toggle
@@ -68,9 +81,7 @@ class MainActivity : AppCompatActivity() {
         updateThemeButtons()
 
         // Battery optimization warning
-        binding.btnFixBattery.setOnClickListener {
-            openBatteryOptimizationSettings()
-        }
+        binding.btnFixBattery.setOnClickListener { openBatteryOptimizationSettings() }
         binding.btnDismissBattery.setOnClickListener {
             prefs.batteryOptDismissed = true
             binding.cardBatteryOpt.visibility = View.GONE
@@ -112,16 +123,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isNotificationListenerEnabled(): Boolean {
-        val enabledListeners = Settings.Secure.getString(
-            contentResolver, "enabled_notification_listeners"
-        ) ?: return false
-        return enabledListeners.contains(packageName)
+        val enabled = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+            ?: return false
+        return enabled.contains(packageName)
     }
 
     private fun updateStatusCard() {
         val hasPermission = isNotificationListenerEnabled()
         val serviceEnabled = prefs.isEnabled
-
         when {
             !hasPermission -> {
                 binding.statusIcon.setImageResource(R.drawable.ic_status_error)
@@ -153,16 +162,9 @@ class MainActivity : AppCompatActivity() {
                 cal.set(java.util.Calendar.SECOND, 0)
                 cal.timeInMillis
             }
-
-            val forwarded = withContext(Dispatchers.IO) {
-                db.logDao().countForwardedSince(startOfDay)
-            }
-            val skipped = withContext(Dispatchers.IO) {
-                db.logDao().countSkippedSince(startOfDay)
-            }
-            val pending = withContext(Dispatchers.IO) {
-                db.logDao().countPendingSince(startOfDay)
-            }
+            val forwarded = withContext(Dispatchers.IO) { db.logDao().countForwardedSince(startOfDay) }
+            val skipped = withContext(Dispatchers.IO) { db.logDao().countSkippedSince(startOfDay) }
+            val pending = withContext(Dispatchers.IO) { db.logDao().countPendingSince(startOfDay) }
 
             binding.tvStats.text = when {
                 forwarded + skipped + pending == 0 -> getString(R.string.stats_none_today)
@@ -177,16 +179,15 @@ class MainActivity : AppCompatActivity() {
             return
         }
         val pm = getSystemService(POWER_SERVICE) as PowerManager
-        val ignoringBatteryOpt = pm.isIgnoringBatteryOptimizations(packageName)
-        binding.cardBatteryOpt.visibility = if (ignoringBatteryOpt) View.GONE else View.VISIBLE
+        binding.cardBatteryOpt.visibility =
+            if (pm.isIgnoringBatteryOptimizations(packageName)) View.GONE else View.VISIBLE
     }
 
     private fun openBatteryOptimizationSettings() {
         try {
-            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+            startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                 data = android.net.Uri.parse("package:$packageName")
-            }
-            startActivity(intent)
+            })
         } catch (e: Exception) {
             startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
         }
@@ -201,9 +202,7 @@ class MainActivity : AppCompatActivity() {
                     prefs.onboardingDone = true
                     startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                 }
-                .setNegativeButton(R.string.onboarding_later) { _, _ ->
-                    prefs.onboardingDone = true
-                }
+                .setNegativeButton(R.string.onboarding_later) { _, _ -> prefs.onboardingDone = true }
                 .setCancelable(false)
                 .show()
         }
@@ -215,6 +214,21 @@ class MainActivity : AppCompatActivity() {
         binding.switchConfirm.isChecked = prefs.confirmBeforeAdding
         val dedupSec = prefs.skipDuplicateWindowMs / 1000
         binding.etDedupWindow.setText(if (dedupSec > 0) dedupSec.toString() else "5")
+
+        // New settings
+        binding.switchAutoDismiss.isChecked = prefs.autoDismissSource          // #1
+        binding.switchUndo.isChecked = prefs.undoEnabled                        // #7
+        binding.switchPrivacy.isChecked = prefs.privacyMode                     // #4
+        val threshold = prefs.largeTransactionThreshold
+        binding.etLargeTxThreshold.setText(if (threshold > 0) threshold.toString() else "")  // #6
+
+        binding.switchBatch.isChecked = prefs.batchMode                         // #2
+        binding.etBatchWindow.setText(prefs.batchWindowMinutes.toString())
+        binding.layoutBatchWindow.visibility = if (prefs.batchMode) View.VISIBLE else View.GONE
+
+        binding.switchReminder.isChecked = prefs.reminderEnabled                // #3
+        binding.etReminderInterval.setText(prefs.reminderIntervalMinutes.toString())
+        binding.layoutReminderInterval.visibility = if (prefs.reminderEnabled) View.VISIBLE else View.GONE
     }
 
     private fun saveSettings() {
@@ -223,7 +237,55 @@ class MainActivity : AppCompatActivity() {
         prefs.confirmBeforeAdding = binding.switchConfirm.isChecked
         val dedupSec = binding.etDedupWindow.text.toString().toLongOrNull() ?: 5L
         prefs.skipDuplicateWindowMs = dedupSec.coerceAtLeast(1L) * 1000L
+
+        // #1 Auto-dismiss source
+        prefs.autoDismissSource = binding.switchAutoDismiss.isChecked
+        // #7 Undo send
+        prefs.undoEnabled = binding.switchUndo.isChecked
+        // #4 Privacy mode
+        prefs.privacyMode = binding.switchPrivacy.isChecked
+        // #6 Large transaction alarm
+        prefs.largeTransactionThreshold = binding.etLargeTxThreshold.text.toString().toDoubleOrNull() ?: 0.0
+        // #2 Batch mode
+        prefs.batchMode = binding.switchBatch.isChecked
+        prefs.batchWindowMinutes = binding.etBatchWindow.text.toString().toIntOrNull()?.coerceAtLeast(1) ?: 15
+        // #3 Reminder
+        val reminderWasEnabled = prefs.reminderEnabled
+        prefs.reminderEnabled = binding.switchReminder.isChecked
+        prefs.reminderIntervalMinutes = binding.etReminderInterval.text.toString().toIntOrNull()?.coerceAtLeast(5) ?: 30
+        if (prefs.reminderEnabled && !reminderWasEnabled) {
+            scheduleReminderAlarm()
+        } else if (!prefs.reminderEnabled) {
+            cancelReminderAlarm()
+        }
+
         Snackbar.make(binding.root, R.string.settings_saved, Snackbar.LENGTH_SHORT).show()
+    }
+
+    // ── #3 Reminder alarm scheduling ─────────────────────────────────────────
+
+    private fun scheduleReminderAlarm() {
+        val intervalMs = prefs.reminderIntervalMinutes * 60_000L
+        val intent = Intent(ReminderReceiver.ACTION_REMINDER).apply { setPackage(packageName) }
+        val pi = PendingIntent.getBroadcast(
+            this, ReminderReceiver.ALARM_REQUEST_CODE, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val am = getSystemService(ALARM_SERVICE) as AlarmManager
+        am.setInexactRepeating(
+            AlarmManager.RTC_WAKEUP,
+            System.currentTimeMillis() + intervalMs,
+            intervalMs, pi
+        )
+    }
+
+    private fun cancelReminderAlarm() {
+        val intent = Intent(ReminderReceiver.ACTION_REMINDER).apply { setPackage(packageName) }
+        val pi = PendingIntent.getBroadcast(
+            this, ReminderReceiver.ALARM_REQUEST_CODE, intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        pi?.let { (getSystemService(ALARM_SERVICE) as AlarmManager).cancel(it) }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -231,14 +293,9 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_about -> {
-                showAboutDialog()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
+    override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
+        R.id.action_about -> { showAboutDialog(); true }
+        else -> super.onOptionsItemSelected(item)
     }
 
     private fun showAboutDialog() {

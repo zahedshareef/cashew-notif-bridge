@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="true"
@@ -14,6 +17,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.CashewBridge">
+
+        <!-- ── Activities ──────────────────────────────────────────────────── -->
 
         <activity
             android:name=".ui.MainActivity"
@@ -42,6 +47,15 @@
             android:label="@string/title_notifications"
             android:parentActivityName=".ui.MainActivity" />
 
+        <!-- #2 Batch Review — launched from BatchAlarmReceiver and batch-ready notification -->
+        <activity
+            android:name=".ui.BatchReviewActivity"
+            android:exported="false"
+            android:label="Review Batch"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <!-- ── Services ────────────────────────────────────────────────────── -->
+
         <service
             android:name=".service.NotificationListenerService"
             android:exported="true"
@@ -55,6 +69,23 @@
                 android:value=".ui.MainActivity" />
         </service>
 
+        <!-- #8 Quick Settings tile -->
+        <service
+            android:name=".service.QuickToggleTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_status_active"
+            android:label="Cashew Bridge"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.TOGGLEABLE_TILE"
+                android:value="true" />
+        </service>
+
+        <!-- ── Broadcast Receivers ─────────────────────────────────────────── -->
+
         <receiver
             android:name=".service.BootReceiver"
             android:exported="true">
@@ -63,13 +94,42 @@
             </intent-filter>
         </receiver>
 
-        <!-- Handles "Send to Cashew" / "Skip" taps on confirm notifications -->
+        <!-- Handles "Send to Cashew" / "Skip" on confirm notifications -->
         <receiver
             android:name=".service.ConfirmActionReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.cashewbridge.app.ACTION_CONFIRM_SEND" />
                 <action android:name="com.cashewbridge.app.ACTION_CONFIRM_SKIP" />
+            </intent-filter>
+        </receiver>
+
+        <!-- #7 Undo send: "Send Now", "Undo", and countdown alarm fire -->
+        <receiver
+            android:name=".service.UndoActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.cashewbridge.app.ACTION_UNDO_SEND_NOW" />
+                <action android:name="com.cashewbridge.app.ACTION_UNDO_CANCEL" />
+                <action android:name="com.cashewbridge.app.ACTION_UNDO_ALARM_FIRE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- #2 Batch alarm: fires when batch collection window expires -->
+        <receiver
+            android:name=".service.BatchAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.cashewbridge.app.ACTION_BATCH_ALARM" />
+            </intent-filter>
+        </receiver>
+
+        <!-- #3 Reminder: repeating alarm checks for unreviewed transactions -->
+        <receiver
+            android:name=".service.ReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.cashewbridge.app.ACTION_REMINDER" />
             </intent-filter>
         </receiver>
 
