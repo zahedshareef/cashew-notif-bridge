@@ -41,16 +41,12 @@ class AppPreferences(context: Context) {
         get() = prefs.getBoolean(KEY_BATTERY_OPT_DISMISSED, false)
         set(value) = prefs.edit().putBoolean(KEY_BATTERY_OPT_DISMISSED, value).apply()
 
-    // ── Improvement #1: Auto-dismiss source notification after forwarding ──────
-
-    /** Automatically cancel the original bank notification once it is forwarded to Cashew. */
+    // ── Auto-dismiss source notification ──────────────────────────────────────
     var autoDismissSource: Boolean
         get() = prefs.getBoolean(KEY_AUTO_DISMISS_SOURCE, false)
         set(value) = prefs.edit().putBoolean(KEY_AUTO_DISMISS_SOURCE, value).apply()
 
-    // ── Improvement #2: Batch review mode ────────────────────────────────────
-
-    /** Collect transactions for [batchWindowMinutes] then show them all at once for review. */
+    // ── Batch review mode ─────────────────────────────────────────────────────
     var batchMode: Boolean
         get() = prefs.getBoolean(KEY_BATCH_MODE, false)
         set(value) = prefs.edit().putBoolean(KEY_BATCH_MODE, value).apply()
@@ -59,8 +55,7 @@ class AppPreferences(context: Context) {
         get() = prefs.getInt(KEY_BATCH_WINDOW, 15)
         set(value) = prefs.edit().putInt(KEY_BATCH_WINDOW, value).apply()
 
-    // ── Improvement #3: Unreviewed transaction reminders ─────────────────────
-
+    // ── Unreviewed transaction reminders ──────────────────────────────────────
     var reminderEnabled: Boolean
         get() = prefs.getBoolean(KEY_REMINDER_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_REMINDER_ENABLED, value).apply()
@@ -69,26 +64,45 @@ class AppPreferences(context: Context) {
         get() = prefs.getInt(KEY_REMINDER_INTERVAL, 30)
         set(value) = prefs.edit().putInt(KEY_REMINDER_INTERVAL, value).apply()
 
-    // ── Improvement #4: Privacy mode ─────────────────────────────────────────
-
-    /** When true, confirm notifications show "Transaction detected" instead of amount/merchant. */
+    // ── Privacy mode ──────────────────────────────────────────────────────────
     var privacyMode: Boolean
         get() = prefs.getBoolean(KEY_PRIVACY_MODE, false)
         set(value) = prefs.edit().putBoolean(KEY_PRIVACY_MODE, value).apply()
 
-    // ── Improvement #6: Large transaction alarm ───────────────────────────────
-
-    /** Amount above which a loud alarm notification is posted (0 = disabled). */
+    // ── Large transaction alarm ───────────────────────────────────────────────
     var largeTransactionThreshold: Double
         get() = prefs.getFloat(KEY_LARGE_TX_THRESHOLD, 0f).toDouble()
         set(value) = prefs.edit().putFloat(KEY_LARGE_TX_THRESHOLD, value.toFloat()).apply()
 
-    // ── Improvement #7: Undo send ─────────────────────────────────────────────
-
-    /** Hold the transaction for [UNDO_COUNTDOWN_SECONDS] before actually forwarding. */
+    // ── Undo send ─────────────────────────────────────────────────────────────
     var undoEnabled: Boolean
         get() = prefs.getBoolean(KEY_UNDO_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_UNDO_ENABLED, value).apply()
+
+    // ── #5 Daily / weekly summary notification ────────────────────────────────
+    /** Whether the scheduled summary notification is enabled. */
+    var summaryEnabled: Boolean
+        get() = prefs.getBoolean(KEY_SUMMARY_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_SUMMARY_ENABLED, value).apply()
+
+    /** Hour of day (0-23) to fire the summary (default 21 = 9 PM). */
+    var summaryHour: Int
+        get() = prefs.getInt(KEY_SUMMARY_HOUR, 21)
+        set(value) = prefs.edit().putInt(KEY_SUMMARY_HOUR, value).apply()
+
+    /** 0 = daily, 1 = weekly (Monday morning). */
+    var summaryFrequency: Int
+        get() = prefs.getInt(KEY_SUMMARY_FREQUENCY, 0)
+        set(value) = prefs.edit().putInt(KEY_SUMMARY_FREQUENCY, value).apply()
+
+    // ── #12 Fuzzy duplicate detection ────────────────────────────────────────
+    /**
+     * When true, dedup key is `packageName + amount` (ignores body text).
+     * This catches banks that send the same transaction in two different wordings.
+     */
+    var fuzzyDedupEnabled: Boolean
+        get() = prefs.getBoolean(KEY_FUZZY_DEDUP, false)
+        set(value) = prefs.edit().putBoolean(KEY_FUZZY_DEDUP, value).apply()
 
     companion object {
         private const val KEY_ENABLED = "enabled"
@@ -107,6 +121,10 @@ class AppPreferences(context: Context) {
         private const val KEY_PRIVACY_MODE = "privacy_mode"
         private const val KEY_LARGE_TX_THRESHOLD = "large_tx_threshold"
         private const val KEY_UNDO_ENABLED = "undo_enabled"
+        private const val KEY_SUMMARY_ENABLED = "summary_enabled"
+        private const val KEY_SUMMARY_HOUR = "summary_hour"
+        private const val KEY_SUMMARY_FREQUENCY = "summary_frequency"
+        private const val KEY_FUZZY_DEDUP = "fuzzy_dedup_enabled"
 
         const val UNDO_COUNTDOWN_SECONDS = 10L
     }

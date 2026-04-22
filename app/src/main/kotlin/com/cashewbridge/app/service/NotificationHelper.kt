@@ -18,6 +18,7 @@ object NotificationHelper {
     const val CHANNEL_UNDO = "cashew_bridge_undo"
     const val CHANNEL_REMINDER = "cashew_bridge_reminder"
     const val CHANNEL_BATCH = "cashew_bridge_batch"
+    const val CHANNEL_SUMMARY = "cashew_bridge_summary"    // #5 daily/weekly summary
 
     const val ACTION_CONFIRM_SEND = "com.cashewbridge.app.ACTION_CONFIRM_SEND"
     const val ACTION_CONFIRM_SKIP = "com.cashewbridge.app.ACTION_CONFIRM_SKIP"
@@ -71,6 +72,12 @@ object NotificationHelper {
             NotificationChannel(CHANNEL_BATCH, "Batch Review Ready",
                 NotificationManager.IMPORTANCE_HIGH).apply {
                 description = "Your batch of transactions is ready to review"
+            }
+        )
+        manager.createNotificationChannel(
+            NotificationChannel(CHANNEL_SUMMARY, "Spending Summary",
+                NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "Daily or weekly spending summary notifications"
             }
         )
     }

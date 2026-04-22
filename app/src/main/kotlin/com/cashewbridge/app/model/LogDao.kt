@@ -29,4 +29,85 @@ interface LogDao {
     /** Count pending-confirm transactions since a given timestamp. */
     @Query("SELECT COUNT(*) FROM logs WHERE timestamp >= :since AND actionTaken = 'PENDING_CONFIRM'")
     suspend fun countPendingSince(since: Long): Int
+
+    // ── Insights queries (#6) ──────────────────────────────────────────────────
+
+    /** Sum of forwarded expenses per calendar-day label (last N days), for the bar chart. */
+    @Query("""
+        SELECT strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') AS day,
+               SUM(parsedAmount) AS total
+        FROM logs
+        WHERE timestamp >= :since
+          AND actionTaken IN ('LAUNCHED', 'BATCHED')
+          AND parsedAmount IS NOT NULL
+          AND isIncome = 0
+        GROUP BY day
+        ORDER BY day ASC
+    """)
+    suspend fun getDailyExpenses(since: Long): List<DayTotal>
+
+    /** Sum of forwarded income per calendar-day label. */
+    @Query("""
+        SELECT strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') AS day,
+               SUM(parsedAmount) AS total
+        FROM logs
+        WHERE timestamp >= :since
+          AND actionTaken IN ('LAUNCHED', 'BATCHED')
+          AND parsedAmount IS NOT NULL
+          AND isIncome = 1
+        GROUP BY day
+        ORDER BY day ASC
+    """)
+    suspend fun getDailyIncome(since: Long): List<DayTotal>
+
+    /** Category breakdown for the insights screen. */
+    @Query("""
+        SELECT COALESCE(parsedCategory, '(uncategorised)') AS day,
+               SUM(parsedAmount) AS total
+        FROM logs
+        WHERE timestamp >= :since
+          AND actionTaken IN ('LAUNCHED', 'BATCHED')
+          AND parsedAmount IS NOT NULL
+          AND isIncome = 0
+        GROUP BY parsedCategory
+        ORDER BY total DESC
+        LIMIT 10
+    """)
+    suspend fun getCategoryBreakdown(since: Long): List<DayTotal>
+
+    /** Total forwarded expenses for daily/weekly summary notification (#5). */
+    @Query("""
+        SELECT SUM(parsedAmount)
+        FROM logs
+        WHERE timestamp >= :since
+          AND actionTaken IN ('LAUNCHED', 'BATCHED')
+          AND parsedAmount IS NOT NULL
+          AND isIncome = 0
+    """)
+    suspend fun sumExpensesSince(since: Long): Double?
+
+    /** Count forwarded transactions (expense + income) since [since]. */
+    @Query("""
+        SELECT COUNT(*)
+        FROM logs
+        WHERE timestamp >= :since
+          AND actionTaken IN ('LAUNCHED', 'BATCHED')
+    """)
+    suspend fun countForwardedAllSince(since: Long): Int
+
+    /** Top merchant by count since [since] (for summary). */
+    @Query("""
+        SELECT parsedMerchant AS day, COUNT(*) AS total
+        FROM logs
+        WHERE timestamp >= :since
+          AND actionTaken IN ('LAUNCHED', 'BATCHED')
+          AND parsedMerchant IS NOT NULL
+        GROUP BY parsedMerchant
+        ORDER BY total DESC
+        LIMIT 1
+    """)
+    suspend fun getTopMerchantSince(since: Long): List<DayTotal>
 }
+
+/** Reusable projection for day/label + amount pairs. */
+data class DayTotal(val day: String, val total: Double)

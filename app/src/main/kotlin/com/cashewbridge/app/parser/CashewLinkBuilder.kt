@@ -16,6 +16,7 @@ import com.cashewbridge.app.model.ParsedTransaction
  *     &walletName=<string>
  *     &income=<true|false>
  *     &updateData=<true|false>
+ *     &currency=<ISO-4217 code>   ← #1 multi-currency
  */
 object CashewLinkBuilder {
 
@@ -24,30 +25,7 @@ object CashewLinkBuilder {
         walletName: String = "",
         updateData: Boolean = true
     ): Intent {
-        val uriBuilder = Uri.Builder()
-            .scheme("cashewapp")
-            .authority("addTransaction")
-            .appendQueryParameter("amount", transaction.amount.toString())
-            .appendQueryParameter("income", transaction.isIncome.toString())
-            .appendQueryParameter("updateData", updateData.toString())
-
-        transaction.merchant?.takeIf { it.isNotBlank() }?.let {
-            uriBuilder.appendQueryParameter("title", it)
-        }
-
-        transaction.note?.takeIf { it.isNotBlank() }?.let {
-            uriBuilder.appendQueryParameter("note", it)
-        }
-
-        transaction.category?.takeIf { it.isNotBlank() }?.let {
-            uriBuilder.appendQueryParameter("categoryName", it)
-        }
-
-        walletName.takeIf { it.isNotBlank() }?.let {
-            uriBuilder.appendQueryParameter("walletName", it)
-        }
-
-        val uri = uriBuilder.build()
+        val uri = buildUri(transaction, walletName, updateData)
         return Intent(Intent.ACTION_VIEW, uri).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
@@ -65,6 +43,10 @@ object CashewLinkBuilder {
             .appendQueryParameter("income", transaction.isIncome.toString())
             .appendQueryParameter("updateData", updateData.toString())
             .apply {
+                // #1 — currency forwarding
+                if (transaction.currency.isNotBlank() && transaction.currency != "USD") {
+                    appendQueryParameter("currency", transaction.currency)
+                }
                 transaction.merchant?.takeIf { it.isNotBlank() }?.let {
                     appendQueryParameter("title", it)
                 }

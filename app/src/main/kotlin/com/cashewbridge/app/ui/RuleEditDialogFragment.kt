@@ -65,21 +65,13 @@ class RuleEditDialogFragment : DialogFragment() {
             binding.switchAutoDetect.isChecked = rule.autoDetectType
             binding.etPriority.setText(rule.priority.toString())
 
-            // Condition logic (#10)
-            if (rule.conditionLogic == 1) {
-                binding.toggleConditionLogic.check(R.id.btn_logic_or)
-            } else {
-                binding.toggleConditionLogic.check(R.id.btn_logic_and)
-            }
-
-            // Per-rule cooldown (#9)
+            binding.toggleConditionLogic.check(
+                if (rule.conditionLogic == 1) R.id.btn_logic_or else R.id.btn_logic_and
+            )
             binding.etCooldownMinutes.setText(rule.cooldownMinutes.toString())
-
-            // Time range (#5)
             binding.etStartHour.setText(rule.activeStartHour.toString())
             binding.etEndHour.setText(rule.activeEndHour.toString())
 
-            // Days of week bitmask (#5) — bit0=Sun bit1=Mon…bit6=Sat
             binding.chipSun.isChecked = (rule.activeDaysOfWeek and 0b0000001) != 0
             binding.chipMon.isChecked = (rule.activeDaysOfWeek and 0b0000010) != 0
             binding.chipTue.isChecked = (rule.activeDaysOfWeek and 0b0000100) != 0
@@ -88,18 +80,25 @@ class RuleEditDialogFragment : DialogFragment() {
             binding.chipFri.isChecked = (rule.activeDaysOfWeek and 0b0100000) != 0
             binding.chipSat.isChecked = (rule.activeDaysOfWeek and 0b1000000) != 0
 
+            // v4 fields
+            binding.etSenderContains.setText(rule.senderContains)
+            binding.etMinAmountFilter.setText(if (rule.minAmountFilter > 0) rule.minAmountFilter.toString() else "0")
+            binding.etMaxAmountFilter.setText(if (rule.maxAmountFilter > 0) rule.maxAmountFilter.toString() else "0")
+            binding.etNoteRegex.setText(rule.noteRegex)
+            binding.etCurrencyOverride.setText(rule.currencyOverride)
+
             binding.layoutIncomeSwitch.visibility =
                 if (rule.autoDetectType) View.GONE else View.VISIBLE
         } else {
-            // Default: AND logic selected
             binding.toggleConditionLogic.check(R.id.btn_logic_and)
             binding.etCooldownMinutes.setText("0")
             binding.etStartHour.setText("-1")
             binding.etEndHour.setText("-1")
+            binding.etMinAmountFilter.setText("0")
+            binding.etMaxAmountFilter.setText("0")
 
             val prefillPackage = arguments?.getString(ARG_PREFILL_PACKAGE)
             val prefillAppLabel = arguments?.getString(ARG_PREFILL_APP_LABEL)
-
             if (!prefillPackage.isNullOrBlank()) {
                 binding.etPackageName.setText(prefillPackage)
                 binding.etPackageName.isEnabled = false
@@ -123,18 +122,24 @@ class RuleEditDialogFragment : DialogFragment() {
                 binding.tvTestResult.text = getString(R.string.test_rule_empty)
                 return@setOnClickListener
             }
-
             val amountPattern = binding.etAmountRegex.text.toString().trim()
             val merchantPattern = binding.etMerchantRegex.text.toString().trim()
+            val notePattern = binding.etNoteRegex.text.toString().trim()
 
             val amount = NotificationParser.testAmountRegex(amountPattern, sampleText)
             val merchant = NotificationParser.testMerchantRegex(merchantPattern, sampleText)
             val isIncome = NotificationParser.detectIncome(sampleText)
+            val currency = NotificationParser.detectCurrency(sampleText)
+            val note = if (notePattern.isNotBlank()) {
+                try { Regex(notePattern).find(sampleText)?.groupValues?.getOrNull(1) } catch (e: Exception) { null }
+            } else null
 
             val result = buildString {
                 append("Amount  : ${amount?.toString() ?: getString(R.string.test_no_match)}\n")
                 append("Merchant: ${merchant ?: getString(R.string.test_no_match)}\n")
-                append("Type    : ${if (isIncome) "Income" else "Expense"} (keyword detection)")
+                append("Currency: $currency (auto-detected)\n")
+                append("Type    : ${if (isIncome) "Income" else "Expense"} (keyword)\n")
+                if (notePattern.isNotBlank()) append("Note    : ${note ?: getString(R.string.test_no_match)}")
             }
             binding.tvTestResult.text = result
         }
@@ -158,7 +163,6 @@ class RuleEditDialogFragment : DialogFragment() {
             binding.etRuleName.error = getString(R.string.required)
             return
         }
-
         val conditionLogic = if (binding.toggleConditionLogic.checkedButtonId == R.id.btn_logic_or) 1 else 0
         val cooldown = binding.etCooldownMinutes.text.toString().toIntOrNull()?.coerceAtLeast(0) ?: 0
         val startHour = binding.etStartHour.text.toString().toIntOrNull() ?: -1
@@ -182,13 +186,17 @@ class RuleEditDialogFragment : DialogFragment() {
             cooldownMinutes = cooldown,
             activeStartHour = startHour,
             activeEndHour = endHour,
-            activeDaysOfWeek = buildDaysBitmask()
+            activeDaysOfWeek = buildDaysBitmask(),
+            // v4 fields
+            senderContains = binding.etSenderContains.text.toString().trim(),
+            minAmountFilter = binding.etMinAmountFilter.text.toString().toDoubleOrNull() ?: 0.0,
+            maxAmountFilter = binding.etMaxAmountFilter.text.toString().toDoubleOrNull() ?: 0.0,
+            noteRegex = binding.etNoteRegex.text.toString().trim(),
+            currencyOverride = binding.etCurrencyOverride.text.toString().trim().uppercase()
         )
 
         val db = AppDatabase.getInstance(requireContext())
-        lifecycleScope.launch(Dispatchers.IO) {
-            db.ruleDao().insertRule(rule)
-        }
+        lifecycleScope.launch(Dispatchers.IO) { db.ruleDao().insertRule(rule) }
     }
 
     companion object {
@@ -198,16 +206,11 @@ class RuleEditDialogFragment : DialogFragment() {
 
         fun newInstance(rule: NotificationRule?): RuleEditDialogFragment {
             val fragment = RuleEditDialogFragment()
-            if (rule != null) {
-                fragment.arguments = Bundle().apply { putParcelable(ARG_RULE, rule) }
-            }
+            if (rule != null) fragment.arguments = Bundle().apply { putParcelable(ARG_RULE, rule) }
             return fragment
         }
 
-        fun newInstanceForNotification(
-            packageName: String,
-            appLabel: String
-        ): RuleEditDialogFragment {
+        fun newInstanceForNotification(packageName: String, appLabel: String): RuleEditDialogFragment {
             val fragment = RuleEditDialogFragment()
             fragment.arguments = Bundle().apply {
                 putString(ARG_PREFILL_PACKAGE, packageName)

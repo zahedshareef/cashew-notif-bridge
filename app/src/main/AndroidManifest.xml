@@ -47,11 +47,24 @@
             android:label="@string/title_notifications"
             android:parentActivityName=".ui.MainActivity" />
 
-        <!-- #2 Batch Review — launched from BatchAlarmReceiver and batch-ready notification -->
         <activity
             android:name=".ui.BatchReviewActivity"
             android:exported="false"
             android:label="Review Batch"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <!-- #6 Insights screen -->
+        <activity
+            android:name=".ui.InsightsActivity"
+            android:exported="false"
+            android:label="Insights"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <!-- #9 App blocklist screen -->
+        <activity
+            android:name=".ui.AppBlocklistActivity"
+            android:exported="false"
+            android:label="App Blocklist"
             android:parentActivityName=".ui.MainActivity" />
 
         <!-- ── Services ────────────────────────────────────────────────────── -->
@@ -94,7 +107,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- Handles "Send to Cashew" / "Skip" on confirm notifications -->
         <receiver
             android:name=".service.ConfirmActionReceiver"
             android:exported="false">
@@ -104,7 +116,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- #7 Undo send: "Send Now", "Undo", and countdown alarm fire -->
         <receiver
             android:name=".service.UndoActionReceiver"
             android:exported="false">
@@ -115,7 +126,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- #2 Batch alarm: fires when batch collection window expires -->
         <receiver
             android:name=".service.BatchAlarmReceiver"
             android:exported="false">
@@ -124,13 +134,34 @@
             </intent-filter>
         </receiver>
 
-        <!-- #3 Reminder: repeating alarm checks for unreviewed transactions -->
         <receiver
             android:name=".service.ReminderReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.cashewbridge.app.ACTION_REMINDER" />
             </intent-filter>
+        </receiver>
+
+        <!-- #5 Daily/weekly summary alarm -->
+        <receiver
+            android:name=".service.SummaryReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.cashewbridge.app.ACTION_SUMMARY" />
+            </intent-filter>
+        </receiver>
+
+        <!-- #10 Home screen widget -->
+        <receiver
+            android:name=".service.BridgeWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.cashewbridge.app.WIDGET_TOGGLE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_bridge_info" />
         </receiver>
 
     </application>

@@ -3,6 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/action_templates"
+        android:title="Browse Templates"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_export_rules"
         android:title="@string/export_rules"
         app:showAsAction="never" />

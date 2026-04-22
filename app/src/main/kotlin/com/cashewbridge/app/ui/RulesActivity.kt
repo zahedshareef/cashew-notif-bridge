@@ -82,6 +82,10 @@ class RulesActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             android.R.id.home -> { finish(); true }
+            R.id.action_templates -> {
+                TemplatesDialogFragment.newInstance().show(supportFragmentManager, "templates")
+                true
+            }
             R.id.action_export_rules -> {
                 exportLauncher.launch("cashew_bridge_rules.json")
                 true

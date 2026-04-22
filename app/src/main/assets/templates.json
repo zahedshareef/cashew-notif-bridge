@@ -1,0 +1,222 @@
+[
+  {
+    "label": "Chase Bank — Debit/Charge",
+    "description": "Matches Chase transaction alerts. Extracts dollar amount.",
+    "packageName": "com.chase.sig.android",
+    "bodyContains": "card",
+    "amountRegex": "\\$(\\d[\\d,]*\\.\\d{2})",
+    "merchantRegex": "(?i)at\\s+([A-Za-z][A-Za-z0-9\\s&'.,-]{2,30})",
+    "defaultCategory": "Banking",
+    "isIncome": false,
+    "autoDetectType": true,
+    "currencyOverride": "USD"
+  },
+  {
+    "label": "Wells Fargo — Transaction Alert",
+    "description": "Matches Wells Fargo debit/credit card alerts.",
+    "packageName": "com.wf.wellsfargomobile",
+    "bodyContains": "transaction",
+    "amountRegex": "\\$(\\d[\\d,]*\\.\\d{2})",
+    "merchantRegex": "(?i)at\\s+([A-Za-z][A-Za-z0-9\\s&'.,-]{2,30})",
+    "defaultCategory": "Banking",
+    "autoDetectType": true,
+    "currencyOverride": "USD"
+  },
+  {
+    "label": "Bank of America — Purchase",
+    "description": "Matches BofA debit card purchase alerts.",
+    "packageName": "com.infonow.bofa",
+    "bodyContains": "purchase",
+    "amountRegex": "\\$(\\d[\\d,]*\\.\\d{2})",
+    "merchantRegex": "(?i)at\\s+([A-Za-z][A-Za-z0-9\\s&'.,-]{2,30})",
+    "defaultCategory": "Banking",
+    "autoDetectType": true,
+    "currencyOverride": "USD"
+  },
+  {
+    "label": "HDFC Bank — Debit Alert",
+    "description": "Parses HDFC Bank debit SMS/notification. Extracts INR amount.",
+    "packageName": "com.snapwork.hdfc",
+    "bodyContains": "debited",
+    "amountRegex": "(?:INR|Rs\\.?)\\s*([\\d,]+\\.?\\d*)",
+    "merchantRegex": "(?i)at\\s+([A-Za-z][A-Za-z0-9\\s&'.,-]{2,30})",
+    "noteRegex": "(?i)ref\\s*no\\.?\\s*([A-Z0-9]{6,20})",
+    "defaultCategory": "Banking",
+    "autoDetectType": false,
+    "isIncome": false,
+    "currencyOverride": "INR"
+  },
+  {
+    "label": "HDFC Bank — Credit Alert",
+    "description": "Parses HDFC Bank credit notifications. Extracts INR amount.",
+    "packageName": "com.snapwork.hdfc",
+    "bodyContains": "credited",
+    "amountRegex": "(?:INR|Rs\\.?)\\s*([\\d,]+\\.?\\d*)",
+    "noteRegex": "(?i)ref\\s*no\\.?\\s*([A-Z0-9]{6,20})",
+    "defaultCategory": "Income",
+    "autoDetectType": false,
+    "isIncome": true,
+    "currencyOverride": "INR"
+  },
+  {
+    "label": "ICICI Bank — Debit",
+    "description": "Parses ICICI Bank debit alerts.",
+    "bodyContains": "ICICI",
+    "amountRegex": "(?:INR|Rs\\.?)\\s*([\\d,]+\\.?\\d*)",
+    "merchantRegex": "(?i)at\\s+([A-Za-z][A-Za-z0-9\\s&'.,-]{2,30})",
+    "noteRegex": "(?i)utr\\s*([A-Z0-9]{6,20})",
+    "defaultCategory": "Banking",
+    "autoDetectType": true,
+    "currencyOverride": "INR"
+  },
+  {
+    "label": "SBI — Transaction Alert",
+    "description": "Parses SBI debit/credit SMS.",
+    "bodyContains": "SBI",
+    "amountRegex": "(?:INR|Rs\\.?)\\s*([\\d,]+\\.?\\d*)",
+    "noteRegex": "(?i)ref\\s*([A-Z0-9]{6,20})",
+    "defaultCategory": "Banking",
+    "autoDetectType": true,
+    "currencyOverride": "INR"
+  },
+  {
+    "label": "Monzo — Spending",
+    "description": "Monzo transaction notifications (UK).",
+    "packageName": "co.monzo.avant",
+    "amountRegex": "£([\\d,]+\\.\\d{2})",
+    "merchantRegex": "at\\s+([A-Za-z][A-Za-z0-9\\s&'.,-]{2,30})",
+    "defaultCategory": "Spending",
+    "autoDetectType": false,
+    "isIncome": false,
+    "currencyOverride": "GBP"
+  },
+  {
+    "label": "Revolut — Payment",
+    "description": "Revolut spending and payment alerts.",
+    "packageName": "com.revolut.revolut",
+    "amountRegex": "([\\d,]+\\.\\d{2})",
+    "merchantRegex": "(?:to|at)\\s+([A-Za-z][A-Za-z0-9\\s&'.,-]{2,30})",
+    "defaultCategory": "Spending",
+    "autoDetectType": true
+  },
+  {
+    "label": "Barclays — Card Transaction",
+    "description": "Barclays contactless and online payment alerts (UK).",
+    "packageName": "com.barclays.android.barclaysmobilebanking",
+    "amountRegex": "£([\\d,]+\\.\\d{2})",
+    "merchantRegex": "(?:at|to)\\s+([A-Za-z][A-Za-z0-9\\s&'.,-]{2,30})",
+    "defaultCategory": "Banking",
+    "autoDetectType": false,
+    "isIncome": false,
+    "currencyOverride": "GBP"
+  },
+  {
+    "label": "Google Pay — Received Money",
+    "description": "Captures P2P income via Google Pay's sender sub-text.",
+    "packageName": "com.google.android.apps.walletnfcrel",
+    "bodyContains": "received",
+    "amountRegex": "\\$([\\d,]+\\.\\d{2})",
+    "autoDetectType": false,
+    "isIncome": true,
+    "defaultCategory": "Income",
+    "currencyOverride": "USD"
+  },
+  {
+    "label": "Google Pay — Payment Sent",
+    "description": "Captures outgoing Google Pay P2P transfers.",
+    "packageName": "com.google.android.apps.walletnfcrel",
+    "bodyContains": "paid",
+    "amountRegex": "\\$([\\d,]+\\.\\d{2})",
+    "autoDetectType": false,
+    "isIncome": false,
+    "defaultCategory": "Transfers",
+    "currencyOverride": "USD"
+  },
+  {
+    "label": "PayPal — Money Received",
+    "description": "PayPal incoming payment alerts.",
+    "packageName": "com.paypal.android.p2pmobile",
+    "bodyContains": "sent you",
+    "amountRegex": "\\$([\\d,]+\\.\\d{2})",
+    "isIncome": true,
+    "autoDetectType": false,
+    "defaultCategory": "Income",
+    "currencyOverride": "USD"
+  },
+  {
+    "label": "PayPal — Payment Sent",
+    "description": "PayPal outgoing payments.",
+    "packageName": "com.paypal.android.p2pmobile",
+    "bodyContains": "You paid",
+    "amountRegex": "\\$([\\d,]+\\.\\d{2})",
+    "merchantRegex": "You paid\\s+([A-Za-z][A-Za-z0-9\\s]{2,30})\\s",
+    "isIncome": false,
+    "autoDetectType": false,
+    "defaultCategory": "Transfers",
+    "currencyOverride": "USD"
+  },
+  {
+    "label": "Venmo — Payment",
+    "description": "Venmo P2P payment and charge alerts.",
+    "packageName": "com.venmo",
+    "amountRegex": "\\$([\\d,]+\\.\\d{2})",
+    "autoDetectType": true,
+    "defaultCategory": "Transfers",
+    "currencyOverride": "USD"
+  },
+  {
+    "label": "Cash App — Received",
+    "description": "Cash App incoming payment.",
+    "packageName": "com.squareup.cash",
+    "bodyContains": "received",
+    "amountRegex": "\\$([\\d,]+\\.\\d{2})",
+    "isIncome": true,
+    "autoDetectType": false,
+    "defaultCategory": "Income",
+    "currencyOverride": "USD"
+  },
+  {
+    "label": "Cash App — Sent",
+    "description": "Cash App outgoing payment.",
+    "packageName": "com.squareup.cash",
+    "bodyContains": "sent",
+    "amountRegex": "\\$([\\d,]+\\.\\d{2})",
+    "isIncome": false,
+    "autoDetectType": false,
+    "defaultCategory": "Transfers",
+    "currencyOverride": "USD"
+  },
+  {
+    "label": "Apple Pay (Web) — Purchase",
+    "description": "Apple Pay purchase confirmation emails/notifications.",
+    "bodyContains": "Apple Pay",
+    "amountRegex": "\\$([\\d,]+\\.\\d{2})",
+    "merchantRegex": "(?i)at\\s+([A-Za-z][A-Za-z0-9\\s&'.,-]{2,30})",
+    "isIncome": false,
+    "autoDetectType": false,
+    "defaultCategory": "Shopping",
+    "currencyOverride": "USD"
+  },
+  {
+    "label": "UPI — Debit (Generic)",
+    "description": "Generic UPI debit alerts from any bank.",
+    "bodyContains": "UPI",
+    "amountRegex": "(?:INR|Rs\\.?)\\s*([\\d,]+\\.?\\d*)",
+    "noteRegex": "(?i)utr\\s*(?:no\\.?)?\\s*([0-9]{12})",
+    "isIncome": false,
+    "autoDetectType": true,
+    "defaultCategory": "Banking",
+    "currencyOverride": "INR"
+  },
+  {
+    "label": "UPI — Credit (Generic)",
+    "description": "Generic UPI credit/received alerts.",
+    "bodyContains": "credited via UPI",
+    "amountRegex": "(?:INR|Rs\\.?)\\s*([\\d,]+\\.?\\d*)",
+    "noteRegex": "(?i)utr\\s*(?:no\\.?)?\\s*([0-9]{12})",
+    "isIncome": true,
+    "autoDetectType": false,
+    "defaultCategory": "Income",
+    "currencyOverride": "INR"
+  }
+]

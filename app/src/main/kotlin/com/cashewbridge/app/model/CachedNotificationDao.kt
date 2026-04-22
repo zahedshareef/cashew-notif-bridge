@@ -21,6 +21,10 @@ interface CachedNotificationDao {
     @Query("DELETE FROM notification_cache")
     suspend fun deleteAll()
 
+    /** Distinct package names seen in the cache — used by AppBlocklistActivity (#9). */
+    @Query("SELECT DISTINCT packageName FROM notification_cache ORDER BY packageName ASC")
+    suspend fun getDistinctPackages(): List<String>
+
     /** Keep only the newest N entries to avoid unbounded growth. */
     @Query("""
         DELETE FROM notification_cache 

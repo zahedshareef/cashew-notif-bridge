@@ -24,30 +24,55 @@
     <string name="save_settings">Save Settings</string>
     <string name="settings_saved">Settings saved</string>
 
-    <!-- #1 Auto-dismiss -->
+    <!-- Auto-dismiss -->
     <string name="auto_dismiss_source">Auto-Dismiss Bank Notification</string>
     <string name="auto_dismiss_source_detail">Remove the original bank alert after forwarding to Cashew</string>
 
-    <!-- #2 Batch mode -->
+    <!-- Batch mode -->
     <string name="batch_mode">Batch Review Mode</string>
     <string name="batch_mode_detail">Collect transactions then review them all at once</string>
     <string name="hint_batch_window">Batch Collection Window (minutes)</string>
 
-    <!-- #3 Reminders -->
+    <!-- Reminders -->
     <string name="reminder_enabled">Unreviewed Transaction Reminders</string>
     <string name="reminder_enabled_detail">Nudge you if transactions are waiting in the app</string>
     <string name="hint_reminder_interval">Reminder Interval (minutes, min 5)</string>
 
-    <!-- #4 Privacy mode -->
+    <!-- Privacy mode -->
     <string name="privacy_mode">Privacy Mode for Confirm Notifications</string>
     <string name="privacy_mode_detail">Hide amounts on lock screen — show generic text instead</string>
 
-    <!-- #6 Large transaction alarm -->
+    <!-- Large transaction alarm -->
     <string name="hint_large_tx_threshold">Large Transaction Alert Threshold (0 = off)</string>
 
-    <!-- #7 Undo send -->
+    <!-- Undo send -->
     <string name="undo_send">Undo Send (10-second countdown)</string>
     <string name="undo_send_detail">Hold each transaction for 10s so you can cancel it</string>
+
+    <!-- #5 Daily/weekly summary -->
+    <string name="summary_enabled">Daily/Weekly Spending Summary</string>
+    <string name="summary_enabled_detail">Scheduled notification with your spending totals</string>
+    <string name="hint_summary_hour">Summary Time (hour, 0-23)</string>
+    <string name="summary_frequency_daily">Daily</string>
+    <string name="summary_frequency_weekly">Weekly</string>
+
+    <!-- #12 Fuzzy dedup -->
+    <string name="fuzzy_dedup">Fuzzy Duplicate Detection</string>
+    <string name="fuzzy_dedup_detail">Treat same app + same amount as duplicate (ignores notification wording)</string>
+
+    <!-- Navigation -->
+    <string name="view_insights">Insights</string>
+    <string name="view_blocklist">App Blocklist</string>
+    <string name="create_rule_for_app">Create Rule for App</string>
+    <string name="create_rule_for_app_btn">+ Create Rule for This App</string>
+    <string name="package_auto_detected">Auto-detected from notification — cannot be changed here</string>
+    <string name="rule_saved">Rule saved</string>
+    <string name="manage_rules">Manage Rules</string>
+    <string name="view_logs">Activity Log</string>
+    <string name="view_notifications">Notifications</string>
+    <string name="title_rules">Notification Rules</string>
+    <string name="title_logs">Activity Log</string>
+    <string name="title_notifications">Incoming Notifications</string>
 
     <!-- Theme -->
     <string name="theme_label">App Theme</string>
@@ -64,18 +89,6 @@
     <string name="stats_none_today">No activity logged today</string>
     <string name="stats_today">Today: %1$d forwarded · %2$d skipped · %3$d pending</string>
 
-    <!-- Navigation -->
-    <string name="create_rule_for_app">Create Rule for App</string>
-    <string name="create_rule_for_app_btn">+ Create Rule for This App</string>
-    <string name="package_auto_detected">Auto-detected from notification — cannot be changed here</string>
-    <string name="rule_saved">Rule saved</string>
-    <string name="manage_rules">Manage Rules</string>
-    <string name="view_logs">Activity Log</string>
-    <string name="view_notifications">Notifications</string>
-    <string name="title_rules">Notification Rules</string>
-    <string name="title_logs">Activity Log</string>
-    <string name="title_notifications">Incoming Notifications</string>
-
     <!-- Rules -->
     <string name="no_rules">No rules yet.\nTap + to add your first rule.</string>
     <string name="add_rule">Add Rule</string>
@@ -91,6 +104,7 @@
     <string name="export_failed">Export failed: %s</string>
     <string name="import_success">Imported %d rules</string>
     <string name="import_failed">Import failed: %s</string>
+    <string name="template_applied">Template applied</string>
 
     <!-- Test Rule -->
     <string name="test_rule_empty">Enter sample text above first</string>
@@ -135,5 +149,5 @@
 
     <!-- About -->
     <string name="about_title">About Cashew Bridge</string>
-    <string name="about_message">Cashew Bridge reads your bank/payment notifications and automatically creates transactions in the Cashew app using its App Link feature.\n\nYour notification data never leaves your device. No network access is used.\n\nVersion 1.2</string>
+    <string name="about_message">Cashew Bridge reads your bank/payment notifications and automatically creates transactions in the Cashew app using its App Link feature.\n\nYour notification data never leaves your device. No network access is used.\n\nVersion 1.3</string>
 </resources>

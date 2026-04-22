@@ -1,6 +1,7 @@
 package com.cashewbridge.app.service
 
 import android.app.AlarmManager
+import android.app.Notification
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -17,7 +18,6 @@ import com.cashewbridge.app.parser.NotificationParser
 import com.cashewbridge.app.prefs.AppPreferences
 import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicInteger
-import android.app.Notification
 
 class NotificationListenerService : android.service.notification.NotificationListenerService() {
 
@@ -28,10 +28,10 @@ class NotificationListenerService : android.service.notification.NotificationLis
     // Global dedup: key -> timestamp
     private val recentEvents = LinkedHashMap<String, Long>(16, 0.75f, true)
 
-    // Per-rule cooldown tracking: ruleId -> last fire timestamp (#9)
+    // Per-rule cooldown tracking: ruleId -> last fire timestamp
     private val ruleCooldowns = HashMap<Long, Long>()
 
-    // Whether a batch alarm is already scheduled (#2)
+    // Whether a batch alarm is already scheduled
     private var batchAlarmPending = false
 
     private val confirmIdCounter = AtomicInteger(1000)
@@ -60,37 +60,47 @@ class NotificationListenerService : android.service.notification.NotificationLis
         val body = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
             ?: extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()
             ?: ""
+        // #8 — sender / sub-text extraction (Google Pay, Venmo, Zelle, etc.)
+        val senderText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()
+            ?: extras.getCharSequence(Notification.EXTRA_INFO_TEXT)?.toString()
+            ?: ""
 
         if (title.isBlank() && body.isBlank()) return
-        if (packageName == applicationContext.packageName) return   // skip our own notifications
+        if (packageName == applicationContext.packageName) return
 
         val appLabel = try {
-            applicationContext.packageManager
-                .getApplicationLabel(
-                    applicationContext.packageManager.getApplicationInfo(packageName, 0)
-                ).toString()
-        } catch (e: PackageManager.NameNotFoundException) {
-            packageName
-        }
+            applicationContext.packageManager.getApplicationLabel(
+                applicationContext.packageManager.getApplicationInfo(packageName, 0)
+            ).toString()
+        } catch (e: PackageManager.NameNotFoundException) { packageName }
 
-        // Capture the SBN key for auto-dismiss (#1)
         val sbnKey = sbn.key
 
         serviceScope.launch {
-            val key = "${packageName}_${sbn.id}_${sbn.tag ?: "notag"}"
+            // ── #9 App blocklist ──────────────────────────────────────────────
+            val isBlocked = try { db.appBlocklistDao().isBlocked(packageName) > 0 } catch (e: Exception) { false }
+            if (isBlocked) {
+                Log.d(TAG, "App $packageName is in blocklist — skipped")
+                return@launch
+            }
+
+            val cacheKey = "${packageName}_${sbn.id}_${sbn.tag ?: "notag"}"
             val rules: List<NotificationRule> = try {
                 db.ruleDao().getEnabledRules()
             } catch (e: Exception) { emptyList() }
 
-            val (transaction, matchedRule) = NotificationParser.parse(packageName, title, body, rules)
+            // Pass senderText into parse() for #8
+            val (transaction, matchedRule) = NotificationParser.parse(
+                packageName, title, body, senderText, rules
+            )
 
             val walletName = matchedRule?.defaultWalletName?.takeIf { it.isNotBlank() }
                 ?: prefs.defaultWalletName
 
-            // Always cache the notification (persisted to DB)
+            // Always cache the notification
             NotificationCache.add(
                 CachedNotification(
-                    key = key,
+                    key = cacheKey,
                     packageName = packageName,
                     appLabel = appLabel,
                     title = title,
@@ -108,30 +118,34 @@ class NotificationListenerService : android.service.notification.NotificationLis
 
             if (!prefs.isEnabled) return@launch
             if (transaction == null) {
-                logEvent(packageName, title, body, null, null, null, false, "NO_AMOUNT", "")
+                logEvent(packageName, title, body, null, null, null, false, "NO_AMOUNT", "", "USD")
                 return@launch
             }
             if (prefs.minAmount > 0 && transaction.amount < prefs.minAmount) {
                 logEvent(packageName, title, body, transaction.amount, transaction.merchant,
                     transaction.category, transaction.isIncome, "SKIPPED_MIN_AMOUNT",
-                    matchedRule?.name ?: "")
+                    matchedRule?.name ?: "", transaction.currency)
                 return@launch
             }
 
-            // ── Global dedup ──────────────────────────────────────────────────
-            val dedupKey = "$packageName|${transaction.amount}|${body.take(20)}"
+            // ── #12 Fuzzy duplicate detection ─────────────────────────────────
             val now = System.currentTimeMillis()
+            val dedupKey = if (prefs.fuzzyDedupEnabled) {
+                "$packageName|${transaction.amount}"  // fuzzy: app + amount only
+            } else {
+                "$packageName|${transaction.amount}|${body.take(20)}"  // exact (original)
+            }
             val lastSeen = recentEvents[dedupKey]
             if (lastSeen != null && (now - lastSeen) < prefs.skipDuplicateWindowMs) {
-                Log.d(TAG, "Global dedup skipped: $dedupKey")
+                Log.d(TAG, "Dedup skipped${if (prefs.fuzzyDedupEnabled) " (fuzzy)" else ""}: $dedupKey")
                 return@launch
             }
             recentEvents[dedupKey] = now
-            if (recentEvents.size > 50) {
+            if (recentEvents.size > 100) {
                 recentEvents.entries.minByOrNull { it.value }?.let { recentEvents.remove(it.key) }
             }
 
-            // ── Per-rule cooldown (#9) ─────────────────────────────────────────
+            // ── Per-rule cooldown ─────────────────────────────────────────────
             if (matchedRule != null && matchedRule.cooldownMinutes > 0) {
                 val cooldownMs = matchedRule.cooldownMinutes * 60_000L
                 val lastFired = ruleCooldowns[matchedRule.id]
@@ -139,30 +153,28 @@ class NotificationListenerService : android.service.notification.NotificationLis
                     Log.d(TAG, "Rule '${matchedRule.name}' in cooldown — skipped")
                     logEvent(packageName, title, body, transaction.amount, transaction.merchant,
                         transaction.category, transaction.isIncome, "RULE_COOLDOWN",
-                        matchedRule.name)
+                        matchedRule.name, transaction.currency)
                     return@launch
                 }
                 ruleCooldowns[matchedRule.id] = now
             }
 
-            // ── Large transaction alarm (#6) ──────────────────────────────────
+            // ── Large transaction alarm ───────────────────────────────────────
             val threshold = prefs.largeTransactionThreshold
             if (threshold > 0 && transaction.amount >= threshold) {
-                val alarmId = alarmIdCounter.incrementAndGet()
                 NotificationHelper.postAlarmNotification(
                     context = applicationContext,
-                    notifId = alarmId,
-                    amountLabel = formatAmount(transaction.amount),
+                    notifId = alarmIdCounter.incrementAndGet(),
+                    amountLabel = formatAmount(transaction.amount, transaction.currency),
                     merchant = transaction.merchant,
                     appLabel = appLabel
                 )
             }
 
-            // Build Cashew URI up front (shared by several branches below)
             val cashewUri = CashewLinkBuilder.buildUri(transaction, walletName).toString()
 
             when {
-                // ── Batch mode (#2) ───────────────────────────────────────────
+                // ── Batch mode ────────────────────────────────────────────────
                 prefs.batchMode && !prefs.confirmBeforeAdding -> {
                     db.batchedTransactionDao().insert(
                         BatchedTransaction(
@@ -179,34 +191,34 @@ class NotificationListenerService : android.service.notification.NotificationLis
                     scheduleBatchAlarmIfNeeded()
                     logEvent(packageName, title, body, transaction.amount, transaction.merchant,
                         transaction.category, transaction.isIncome, "BATCHED",
-                        matchedRule?.name ?: "heuristic")
+                        matchedRule?.name ?: "heuristic", transaction.currency)
                 }
 
-                // ── Confirm before adding (with privacy mode #4) ──────────────
+                // ── Confirm before adding ─────────────────────────────────────
                 prefs.confirmBeforeAdding -> {
                     val typeLabel = if (transaction.isIncome) "Income" else "Expense"
                     val merchantPart = transaction.merchant?.let { " · $it" } ?: ""
-                    val summary = "$typeLabel ${formatAmount(transaction.amount)}$merchantPart\n" +
+                    val summary = "$typeLabel ${formatAmount(transaction.amount, transaction.currency)}$merchantPart\n" +
                             "From $appLabel\n\nTap 'Send to Cashew' to confirm or 'Skip' to ignore."
                     NotificationHelper.postConfirmNotification(
                         context = applicationContext,
                         notifId = confirmIdCounter.incrementAndGet(),
                         summary = summary,
                         cashewUri = cashewUri,
-                        privacyMode = prefs.privacyMode   // #4
+                        privacyMode = prefs.privacyMode
                     )
                     logEvent(packageName, title, body, transaction.amount, transaction.merchant,
                         transaction.category, transaction.isIncome, "PENDING_CONFIRM",
-                        matchedRule?.name ?: "heuristic")
+                        matchedRule?.name ?: "heuristic", transaction.currency)
                 }
 
-                // ── Undo countdown (#7) ───────────────────────────────────────
+                // ── Undo countdown ────────────────────────────────────────────
                 prefs.undoEnabled -> {
                     val undoId = undoIdCounter.incrementAndGet()
                     val countdown = AppPreferences.UNDO_COUNTDOWN_SECONDS
                     val typeLabel = if (transaction.isIncome) "Income" else "Expense"
                     val merchantPart = transaction.merchant?.let { " · $it" } ?: ""
-                    val summary = "$typeLabel ${formatAmount(transaction.amount)}$merchantPart from $appLabel"
+                    val summary = "$typeLabel ${formatAmount(transaction.amount, transaction.currency)}$merchantPart from $appLabel"
                     NotificationHelper.postUndoNotification(
                         context = applicationContext,
                         notifId = undoId,
@@ -217,7 +229,7 @@ class NotificationListenerService : android.service.notification.NotificationLis
                     scheduleUndoAlarm(undoId, cashewUri, countdown)
                     logEvent(packageName, title, body, transaction.amount, transaction.merchant,
                         transaction.category, transaction.isIncome, "PENDING_UNDO",
-                        matchedRule?.name ?: "heuristic")
+                        matchedRule?.name ?: "heuristic", transaction.currency)
                 }
 
                 // ── Auto-forward ──────────────────────────────────────────────
@@ -225,31 +237,53 @@ class NotificationListenerService : android.service.notification.NotificationLis
                     val intent = CashewLinkBuilder.buildIntent(transaction, walletName)
                     try {
                         applicationContext.startActivity(intent)
-                        // Auto-dismiss source notification (#1)
                         if (prefs.autoDismissSource) {
                             try { cancelNotification(sbnKey) } catch (e: Exception) {
                                 Log.w(TAG, "Could not cancel source notification: ${e.message}")
                             }
                         }
+                        // #11 — Tasker / Automation broadcast
+                        broadcastTransactionForwarded(packageName, transaction.amount,
+                            transaction.merchant, transaction.category,
+                            transaction.isIncome, transaction.currency)
+
                         logEvent(packageName, title, body, transaction.amount, transaction.merchant,
                             transaction.category, transaction.isIncome, "LAUNCHED",
-                            matchedRule?.name ?: "heuristic")
+                            matchedRule?.name ?: "heuristic", transaction.currency)
+
+                        // Update home screen widget (#10)
+                        BridgeWidget.requestUpdate(applicationContext)
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to launch Cashew", e)
                         logEvent(packageName, title, body, transaction.amount, transaction.merchant,
                             transaction.category, transaction.isIncome, "FAILED: ${e.message}",
-                            matchedRule?.name ?: "")
+                            matchedRule?.name ?: "", transaction.currency)
                     }
                 }
             }
         }
     }
 
-    override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        // Keep in cache — available for manual review in the app
+    override fun onNotificationRemoved(sbn: StatusBarNotification) { /* keep in cache */ }
+
+    // ── #11 Tasker / Automation broadcast ─────────────────────────────────────
+
+    private fun broadcastTransactionForwarded(
+        packageName: String, amount: Double, merchant: String?,
+        category: String?, isIncome: Boolean, currency: String
+    ) {
+        val broadcast = Intent(ACTION_TRANSACTION_FORWARDED).apply {
+            putExtra("amount", amount)
+            putExtra("merchant", merchant ?: "")
+            putExtra("category", category ?: "")
+            putExtra("isIncome", isIncome)
+            putExtra("currency", currency)
+            putExtra("sourcePackage", packageName)
+        }
+        applicationContext.sendBroadcast(broadcast)
     }
 
-    // ── Batch alarm scheduling (#2) ───────────────────────────────────────────
+    // ── Batch alarm scheduling ────────────────────────────────────────────────
 
     @Synchronized
     private fun scheduleBatchAlarmIfNeeded() {
@@ -265,10 +299,9 @@ class NotificationListenerService : android.service.notification.NotificationLis
         )
         val am = applicationContext.getSystemService(ALARM_SERVICE) as AlarmManager
         am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
-        Log.d(TAG, "Batch alarm scheduled for ${prefs.batchWindowMinutes} min from now")
     }
 
-    // ── Undo countdown alarm (#7) ─────────────────────────────────────────────
+    // ── Undo countdown alarm ──────────────────────────────────────────────────
 
     private fun scheduleUndoAlarm(notifId: Int, cashewUri: String, countdownSeconds: Long) {
         val triggerAt = System.currentTimeMillis() + countdownSeconds * 1000L
@@ -289,14 +322,24 @@ class NotificationListenerService : android.service.notification.NotificationLis
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun formatAmount(amount: Double): String =
-        if (amount == amount.toLong().toDouble()) amount.toLong().toString()
-        else "%.2f".format(amount)
+    private fun formatAmount(amount: Double, currency: String): String {
+        val symbol = when (currency) {
+            "USD" -> "$"
+            "GBP" -> "£"
+            "EUR" -> "€"
+            "INR" -> "₹"
+            else -> "$currency "
+        }
+        return if (amount == amount.toLong().toDouble())
+            "$symbol${amount.toLong()}"
+        else
+            "$symbol${"%.2f".format(amount)}"
+    }
 
     private suspend fun logEvent(
         packageName: String, title: String, body: String,
         amount: Double?, merchant: String?, category: String?,
-        isIncome: Boolean, action: String, ruleName: String
+        isIncome: Boolean, action: String, ruleName: String, currency: String
     ) {
         try {
             db.logDao().insertLog(
@@ -309,7 +352,8 @@ class NotificationListenerService : android.service.notification.NotificationLis
                     parsedCategory = category,
                     isIncome = isIncome,
                     actionTaken = action,
-                    matchedRuleName = ruleName
+                    matchedRuleName = ruleName,
+                    currency = currency
                 )
             )
         } catch (e: Exception) {
@@ -320,5 +364,8 @@ class NotificationListenerService : android.service.notification.NotificationLis
     companion object {
         private const val TAG = "CashewBridge"
         private const val BATCH_ALARM_REQUEST = 6001
+
+        /** #11 — Broadcast sent after every successful Cashew launch. External apps (Tasker, Automate) can listen. */
+        const val ACTION_TRANSACTION_FORWARDED = "com.cashewbridge.app.TRANSACTION_FORWARDED"
     }
 }

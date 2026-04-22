@@ -5,6 +5,12 @@ import android.os.Parcelable
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+/**
+ * A fully parsed transaction ready to be forwarded to Cashew.
+ * [currency] is a 3-letter ISO-4217 code detected from the notification.
+ * [note]     is an extracted memo / reference number (optional).
+ * [confidence] is a 0-100 score for heuristic parsing quality.
+ */
 data class ParsedTransaction(
     val amount: Double,
     val merchant: String?,
@@ -12,6 +18,7 @@ data class ParsedTransaction(
     val note: String?,
     val isIncome: Boolean,
     val currency: String = "USD",
+    val confidence: Int = 100,
     val sourcePackage: String,
     val sourceTitle: String,
     val rawText: String
@@ -20,12 +27,12 @@ data class ParsedTransaction(
 /**
  * A user-defined rule for matching notifications and mapping to Cashew parameters.
  *
- * [conditionLogic]     — 0 = ALL conditions must match (AND), 1 = ANY condition matches (OR)
- * [cooldownMinutes]    — per-rule cooldown; rule won't fire again within N minutes (0 = no limit)
- * [activeStartHour]    — rule is only active from this hour (0-23); -1 = no restriction
- * [activeEndHour]      — rule is only active until this hour (0-23); -1 = no restriction
- * [activeDaysOfWeek]   — bitmask: bit0=Sun bit1=Mon … bit6=Sat; 0 = all days
- * [autoDetectType]     — when true, income/expense is inferred from notification keywords
+ * New in v4:
+ *  [noteRegex]        — regex to extract a memo / reference number → forwarded as Cashew note
+ *  [senderContains]   — matches notification sub-text (sender name) for P2P payment apps
+ *  [minAmountFilter]  — rule only fires if parsed amount >= this (0 = no lower bound)
+ *  [maxAmountFilter]  — rule only fires if parsed amount <= this (0 = no upper bound)
+ *  [currencyOverride] — if set, overrides the auto-detected currency (e.g. "INR")
  */
 @Entity(tableName = "rules")
 data class NotificationRule(
@@ -43,16 +50,22 @@ data class NotificationRule(
     val isEnabled: Boolean = true,
     val priority: Int = 0,
     val autoDetectType: Boolean = false,
-    /** 0 = AND (all must match), 1 = OR (any must match) */
     val conditionLogic: Int = 0,
-    /** Minutes before this rule can fire again for the same source (0 = no cooldown) */
     val cooldownMinutes: Int = 0,
-    /** Hour of day (0-23) rule becomes active; -1 = unrestricted */
     val activeStartHour: Int = -1,
-    /** Hour of day (0-23) rule stops being active; -1 = unrestricted */
     val activeEndHour: Int = -1,
-    /** Bitmask of active days: bit0=Sun, bit1=Mon, …, bit6=Sat; 0 = all days */
-    val activeDaysOfWeek: Int = 0
+    val activeDaysOfWeek: Int = 0,
+    // ── v4 additions ────────────────────────────────────────────────────────
+    /** Regex capturing group 1 → note/memo forwarded to Cashew */
+    val noteRegex: String = "",
+    /** Substring match against notification sender / sub-text (#8) */
+    val senderContains: String = "",
+    /** Rule only fires when amount >= this value (0 = no lower bound) (#2) */
+    val minAmountFilter: Double = 0.0,
+    /** Rule only fires when amount <= this value (0 = no upper bound) (#2) */
+    val maxAmountFilter: Double = 0.0,
+    /** If non-blank, overrides auto-detected currency (#1) */
+    val currencyOverride: String = ""
 ) : Parcelable {
 
     constructor(parcel: Parcel) : this(
@@ -73,7 +86,12 @@ data class NotificationRule(
         cooldownMinutes = parcel.readInt(),
         activeStartHour = parcel.readInt(),
         activeEndHour = parcel.readInt(),
-        activeDaysOfWeek = parcel.readInt()
+        activeDaysOfWeek = parcel.readInt(),
+        noteRegex = parcel.readString() ?: "",
+        senderContains = parcel.readString() ?: "",
+        minAmountFilter = parcel.readDouble(),
+        maxAmountFilter = parcel.readDouble(),
+        currencyOverride = parcel.readString() ?: ""
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
@@ -95,6 +113,11 @@ data class NotificationRule(
         parcel.writeInt(activeStartHour)
         parcel.writeInt(activeEndHour)
         parcel.writeInt(activeDaysOfWeek)
+        parcel.writeString(noteRegex)
+        parcel.writeString(senderContains)
+        parcel.writeDouble(minAmountFilter)
+        parcel.writeDouble(maxAmountFilter)
+        parcel.writeString(currencyOverride)
     }
 
     override fun describeContents() = 0
@@ -118,7 +141,8 @@ data class ProcessedLog(
     val parsedCategory: String?,
     val isIncome: Boolean,
     val actionTaken: String,
-    val matchedRuleName: String = ""
+    val matchedRuleName: String = "",
+    val currency: String = "USD"
 )
 
 /**
@@ -137,4 +161,14 @@ data class BatchedTransaction(
     val category: String?,
     val isIncome: Boolean,
     val timestamp: Long = System.currentTimeMillis()
+)
+
+/**
+ * An app whose notifications should be silently ignored (#9 — App Blocklist).
+ */
+@Entity(tableName = "app_blocklist", primaryKeys = ["packageName"])
+data class AppBlocklistEntry(
+    val packageName: String,
+    val appLabel: String,
+    val addedAt: Long = System.currentTimeMillis()
 )

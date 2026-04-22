@@ -12,9 +12,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         NotificationRule::class,
         ProcessedLog::class,
         CachedNotification::class,
-        BatchedTransaction::class
+        BatchedTransaction::class,
+        AppBlocklistEntry::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -23,6 +24,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun logDao(): LogDao
     abstract fun cachedNotificationDao(): CachedNotificationDao
     abstract fun batchedTransactionDao(): BatchedTransactionDao
+    abstract fun appBlocklistDao(): AppBlocklistDao
 
     companion object {
         @Volatile
@@ -50,21 +52,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        /**
-         * Migration v2 → v3:
-         * - Add OR/AND condition logic, per-rule cooldown, and time-range fields to rules
-         * - Add batch_queue table for batch review mode
-         */
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // New rule fields
                 db.execSQL("ALTER TABLE rules ADD COLUMN conditionLogic INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE rules ADD COLUMN cooldownMinutes INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE rules ADD COLUMN activeStartHour INTEGER NOT NULL DEFAULT -1")
                 db.execSQL("ALTER TABLE rules ADD COLUMN activeEndHour INTEGER NOT NULL DEFAULT -1")
                 db.execSQL("ALTER TABLE rules ADD COLUMN activeDaysOfWeek INTEGER NOT NULL DEFAULT 0")
-
-                // Batch queue table
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS batch_queue (
                         id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -82,6 +76,34 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Migration v3 → v4:
+         *  - Adds noteRegex, senderContains, minAmountFilter, maxAmountFilter, currencyOverride
+         *    to the rules table (#1, #2, #3, #8)
+         *  - Adds currency column to logs table (#1)
+         *  - Creates app_blocklist table (#9)
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Rules additions
+                db.execSQL("ALTER TABLE rules ADD COLUMN noteRegex TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE rules ADD COLUMN senderContains TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE rules ADD COLUMN minAmountFilter REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE rules ADD COLUMN maxAmountFilter REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE rules ADD COLUMN currencyOverride TEXT NOT NULL DEFAULT ''")
+                // Logs — currency column
+                db.execSQL("ALTER TABLE logs ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD'")
+                // App blocklist table
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS app_blocklist (
+                        packageName TEXT NOT NULL PRIMARY KEY,
+                        appLabel TEXT NOT NULL,
+                        addedAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
@@ -89,7 +111,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "cashew_bridge.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }
