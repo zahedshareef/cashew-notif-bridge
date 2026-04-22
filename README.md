@@ -2,6 +2,14 @@
 
 A native Android app that privately monitors your bank and payment notifications and automatically creates transactions in the [Cashew](https://cashewapp.web.app/) finance app — without ever granting Cashew direct notification access. All processing happens on-device with no internet permission.
 
+## Screenshots
+
+| Home | Rules | Insights | Templates | Activity Log |
+|:---:|:---:|:---:|:---:|:---:|
+| ![Home screen showing Active status, Enable toggle, Settings and nav buttons](screenshots/01_home.jpg) | ![Rules list with HDFC, Google Pay, Chase and UPI rules](screenshots/02_rules.jpg) | ![Insights showing weekly bar chart and category breakdown](screenshots/03_insights.jpg) | ![Rule templates list with Apply buttons for 20 banks](screenshots/04_templates.jpg) | ![Activity log showing LAUNCHED, SKIPPED and NO_AMOUNT entries](screenshots/05_log.jpg) |
+
+---
+
 ## How It Works
 
 ```
