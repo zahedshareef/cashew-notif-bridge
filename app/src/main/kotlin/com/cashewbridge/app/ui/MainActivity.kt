@@ -83,9 +83,9 @@ class MainActivity : AppCompatActivity() {
         binding.btnSaveSettings.setOnClickListener { saveSettings() }
 
         // Theme
-        binding.btnThemeAuto.setOnClickListener { setTheme(0) }
-        binding.btnThemeLight.setOnClickListener { setTheme(1) }
-        binding.btnThemeDark.setOnClickListener { setTheme(2) }
+        binding.btnThemeAuto.setOnClickListener { applyThemeMode(0) }
+        binding.btnThemeLight.setOnClickListener { applyThemeMode(1) }
+        binding.btnThemeDark.setOnClickListener { applyThemeMode(2) }
         updateThemeButtons()
 
         // Battery
@@ -119,7 +119,7 @@ class MainActivity : AppCompatActivity() {
         AppCompatDelegate.setDefaultNightMode(mode)
     }
 
-    private fun setTheme(mode: Int) { prefs.themeMode = mode; applyTheme(); updateThemeButtons() }
+    private fun applyThemeMode(mode: Int) { prefs.themeMode = mode; applyTheme(); updateThemeButtons() }
 
     private fun updateThemeButtons() {
         val mode = prefs.themeMode

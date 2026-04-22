@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Cashew Bridge</string>
+    <string name="widget_description">Shows today\'s transaction count and lets you toggle the bridge on/off.</string>
 
     <!-- Status -->
     <string name="status_no_permission">Permission Required</string>

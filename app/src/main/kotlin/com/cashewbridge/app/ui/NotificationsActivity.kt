@@ -158,7 +158,7 @@ class NotificationsActivity : AppCompatActivity() {
         val etCategory = view.findViewById<TextInputEditText>(R.id.et_category)
         val etNote = view.findViewById<TextInputEditText>(R.id.et_note)
         val switchIncome = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switch_income)
-        val tvOriginal = view.findViewById<TextView>(R.id.tv_original_notification)
+        val tvOriginal = view.findViewById<TextView>(R.id.tv_raw_notification)
         val tvNoAmount = view.findViewById<TextView>(R.id.tv_no_amount_warning)
 
         tvOriginal.text = "${notif.title}\n${notif.body}"
