@@ -105,11 +105,12 @@
 
         </com.google.android.material.chip.ChipGroup>
 
-        <!-- Action buttons -->
+        <!-- Primary actions: Send + Dismiss -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:layout_marginBottom="6dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_send"
@@ -131,6 +132,17 @@
                 android:textSize="12sp" />
 
         </LinearLayout>
+
+        <!-- Secondary action: Create Rule (text button, uses auto-detected package) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_create_rule"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/create_rule_for_app_btn"
+            android:textSize="11sp"
+            android:paddingStart="0dp"
+            android:paddingEnd="0dp"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
 
     </LinearLayout>
 

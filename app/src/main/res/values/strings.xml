@@ -23,6 +23,10 @@
     <string name="settings_saved">Settings saved</string>
 
     <!-- Navigation -->
+    <string name="create_rule_for_app">Create Rule for App</string>
+    <string name="create_rule_for_app_btn">+ Create Rule for This App</string>
+    <string name="package_auto_detected">Auto-detected from notification — cannot be changed here</string>
+    <string name="rule_saved">Rule saved</string>
     <string name="manage_rules">Manage Rules</string>
     <string name="view_logs">Activity Log</string>
     <string name="view_notifications">Notifications</string>

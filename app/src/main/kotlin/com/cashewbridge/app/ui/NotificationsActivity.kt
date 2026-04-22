@@ -40,7 +40,8 @@ class NotificationsActivity : AppCompatActivity() {
     private lateinit var db: AppDatabase
     private val adapter = NotificationsAdapter(
         onSendToCashew = { notif -> showSendDialog(notif) },
-        onDismiss = { notif -> NotificationCache.remove(notif.key) }
+        onDismiss = { notif -> NotificationCache.remove(notif.key) },
+        onCreateRule = { notif -> showCreateRuleDialog(notif) }
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -144,11 +145,22 @@ class NotificationsActivity : AppCompatActivity() {
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
+
+    private fun showCreateRuleDialog(notif: CachedNotification) {
+        // Package name is auto-populated from the notification — user just fills in parse rules
+        val dialog = RuleEditDialogFragment.newInstanceForNotification(
+            packageName = notif.packageName,
+            appLabel = notif.appLabel
+        )
+        dialog.show(supportFragmentManager, "create_rule")
+        Snackbar.make(binding.root, R.string.rule_saved, Snackbar.LENGTH_SHORT).show()
+    }
 }
 
 class NotificationsAdapter(
     private val onSendToCashew: (CachedNotification) -> Unit,
-    private val onDismiss: (CachedNotification) -> Unit
+    private val onDismiss: (CachedNotification) -> Unit,
+    private val onCreateRule: (CachedNotification) -> Unit
 ) : RecyclerView.Adapter<NotificationsAdapter.NotifViewHolder>() {
 
     private var items = listOf<CachedNotification>()
@@ -184,6 +196,8 @@ class NotificationsAdapter(
             itemView.findViewById(R.id.btn_send)
         private val btnDismiss: com.google.android.material.button.MaterialButton =
             itemView.findViewById(R.id.btn_dismiss)
+        private val btnCreateRule: com.google.android.material.button.MaterialButton =
+            itemView.findViewById(R.id.btn_create_rule)
         private val ivAppIcon: ImageView = itemView.findViewById(R.id.iv_app_icon)
 
         fun bind(notif: CachedNotification) {
@@ -253,6 +267,7 @@ class NotificationsAdapter(
 
             btnSend.setOnClickListener { onSendToCashew(notif) }
             btnDismiss.setOnClickListener { onDismiss(notif) }
+            btnCreateRule.setOnClickListener { onCreateRule(notif) }
 
             // Tap card to send
             itemView.setOnClickListener { onSendToCashew(notif) }
