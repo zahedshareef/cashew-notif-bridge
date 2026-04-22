@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cashew Bridge</string>
+
+    <!-- Status -->
+    <string name="status_no_permission">Permission Required</string>
+    <string name="status_no_permission_detail">Tap below to grant notification access</string>
+    <string name="status_active">Active</string>
+    <string name="status_active_detail">Monitoring notifications and forwarding to Cashew</string>
+    <string name="status_paused">Paused</string>
+    <string name="status_paused_detail">Service is disabled — enable the toggle to resume</string>
+    <string name="status_icon_desc">Service status</string>
+    <string name="grant_permission">Grant Notification Access</string>
+
+    <!-- Settings -->
+    <string name="settings">Settings</string>
+    <string name="enable_service">Enable Bridge</string>
+    <string name="enable_service_detail">Start/stop notification monitoring</string>
+    <string name="hint_wallet_name">Wallet Name in Cashew (optional)</string>
+    <string name="hint_min_amount">Minimum Amount to Forward (0 = all)</string>
+    <string name="confirm_before_adding">Confirm Before Adding</string>
+    <string name="save_settings">Save Settings</string>
+    <string name="settings_saved">Settings saved</string>
+
+    <!-- Navigation -->
+    <string name="manage_rules">Manage Rules</string>
+    <string name="view_logs">Activity Log</string>
+    <string name="view_notifications">Notifications</string>
+    <string name="title_rules">Notification Rules</string>
+    <string name="title_logs">Activity Log</string>
+    <string name="title_notifications">Incoming Notifications</string>
+
+    <!-- Rules -->
+    <string name="no_rules">No rules yet.\nTap + to add your first rule.</string>
+    <string name="add_rule">Add Rule</string>
+    <string name="edit_rule">Edit Rule</string>
+    <string name="delete_rule">Delete Rule</string>
+    <string name="delete_rule_confirm">Delete rule \"%s\"?</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="required">Required</string>
+
+    <!-- Logs -->
+    <string name="no_logs">No activity logged yet</string>
+    <string name="clear_logs">Clear All Logs</string>
+    <string name="clear_logs_confirm">This will remove all activity logs. Continue?</string>
+    <string name="clear">Clear</string>
+
+    <!-- Notifications screen -->
+    <string name="no_notifications">No notifications yet</string>
+    <string name="no_notifications_detail">Notifications will appear here as they arrive</string>
+    <string name="notification_count">%d notifications</string>
+    <string name="clear_all">Clear All</string>
+    <string name="notifications_cleared">Notifications cleared</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="send_to_cashew_btn">Send to Cashew</string>
+
+    <!-- Send dialog -->
+    <string name="send_to_cashew_title">Add to Cashew — %s</string>
+    <string name="send_to_cashew">Add Transaction</string>
+    <string name="sent_to_cashew">Opened in Cashew</string>
+    <string name="label_original_notification">Original notification</string>
+    <string name="no_amount_warning">No amount was automatically detected. Enter the amount manually below.</string>
+    <string name="hint_amount">Amount *</string>
+    <string name="hint_merchant_title">Merchant / Title</string>
+    <string name="hint_category">Category Name in Cashew</string>
+    <string name="hint_note">Note (optional)</string>
+    <string name="label_income">Income</string>
+    <string name="label_income_detail">Toggle off for expenses</string>
+    <string name="error_invalid_amount">Please enter a valid amount greater than 0</string>
+    <string name="error_cashew_not_found">Cashew app not found. Is it installed?</string>
+
+    <!-- About -->
+    <string name="about_title">About Cashew Bridge</string>
+    <string name="about_message">Cashew Bridge reads your bank/payment notifications and automatically creates transactions in the Cashew app using its App Link feature.\n\nYour notification data never leaves your device. No network access is used.\n\nVersion 1.0</string>
+</resources>
