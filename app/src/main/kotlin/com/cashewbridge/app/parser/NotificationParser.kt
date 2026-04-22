@@ -62,14 +62,18 @@ object NotificationParser {
             if (rule.bodyContains.isNotBlank() && !body.contains(rule.bodyContains, ignoreCase = true)) continue
 
             val amount = extractWithRegex(rule.amountRegex, fullText) ?: continue
-            val merchant = extractWithRegex(rule.merchantRegex, fullText)
+            val rawMerchant = extractWithRegex(rule.merchantRegex, fullText)
+            val merchant = rawMerchant?.let { normalizeMerchant(it) }
+
+            // Income/expense: use auto-detect when the rule opts in
+            val isIncome = if (rule.autoDetectType) detectIncome(fullText) else rule.isIncome
 
             return ParsedTransaction(
                 amount = amount,
                 merchant = merchant ?: rule.defaultCategory.takeIf { it.isNotBlank() },
                 category = rule.defaultCategory.takeIf { it.isNotBlank() },
                 note = null,
-                isIncome = rule.isIncome,
+                isIncome = isIncome,
                 sourcePackage = packageName,
                 sourceTitle = title,
                 rawText = fullText
@@ -78,7 +82,7 @@ object NotificationParser {
 
         // 2. Fallback: heuristic parsing
         val amount = extractAmountHeuristic(fullText) ?: return null to null
-        val merchant = extractMerchantHeuristic(fullText)
+        val merchant = extractMerchantHeuristic(fullText)?.let { normalizeMerchant(it) }
         val isIncome = detectIncome(fullText)
 
         return ParsedTransaction(
@@ -91,6 +95,24 @@ object NotificationParser {
             sourceTitle = title,
             rawText = fullText
         ) to null
+    }
+
+    /**
+     * Run a regex against sample text and return the extracted amount (for test-rule UI).
+     */
+    fun testAmountRegex(pattern: String, text: String): Double? = extractWithRegex(pattern, text)
+
+    /**
+     * Run a regex against sample text and return the extracted merchant (for test-rule UI).
+     */
+    fun testMerchantRegex(pattern: String, text: String): String? {
+        if (pattern.isBlank()) return null
+        return try {
+            val match = Regex(pattern).find(text)
+            match?.groupValues?.getOrNull(1)?.trim()?.let { normalizeMerchant(it) }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun extractWithRegex(pattern: String, text: String): Double? {
@@ -124,7 +146,18 @@ object NotificationParser {
         return null
     }
 
-    private fun detectIncome(text: String): Boolean {
+    /** Normalize a raw merchant string: trim, strip trailing punctuation, convert to Title Case. */
+    fun normalizeMerchant(raw: String): String {
+        val cleaned = raw.trim().trimEnd('.', ',', '-', '/', '\\', ':', ';', '*', '#')
+        return cleaned.split(" ")
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { word ->
+                word.lowercase().replaceFirstChar { it.uppercaseChar() }
+            }
+    }
+
+    /** Public so the rule test dialog and confirm receiver can call it directly. */
+    fun detectIncome(text: String): Boolean {
         val lower = text.lowercase()
         val incomeScore = INCOME_KEYWORDS.count { lower.contains(it) }
         val expenseScore = EXPENSE_KEYWORDS.count { lower.contains(it) }

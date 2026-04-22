@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:allowBackup="true"
@@ -59,6 +60,16 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Handles "Send to Cashew" / "Skip" taps on confirm notifications -->
+        <receiver
+            android:name=".service.ConfirmActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.cashewbridge.app.ACTION_CONFIRM_SEND" />
+                <action android:name="com.cashewbridge.app.ACTION_CONFIRM_SKIP" />
             </intent-filter>
         </receiver>
 

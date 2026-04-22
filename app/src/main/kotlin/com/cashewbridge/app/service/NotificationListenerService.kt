@@ -12,6 +12,7 @@ import com.cashewbridge.app.parser.CashewLinkBuilder
 import com.cashewbridge.app.parser.NotificationParser
 import com.cashewbridge.app.prefs.AppPreferences
 import kotlinx.coroutines.*
+import java.util.concurrent.atomic.AtomicInteger
 
 class NotificationListenerService : android.service.notification.NotificationListenerService() {
 
@@ -22,10 +23,16 @@ class NotificationListenerService : android.service.notification.NotificationLis
     // Dedup: key -> timestamp
     private val recentEvents = LinkedHashMap<String, Long>(16, 0.75f, true)
 
+    // Counter for unique confirm notification IDs
+    private val confirmIdCounter = AtomicInteger(1000)
+
     override fun onCreate() {
         super.onCreate()
         prefs = AppPreferences(applicationContext)
         db = AppDatabase.getInstance(applicationContext)
+        NotificationHelper.createChannels(applicationContext)
+        // Restore persisted notifications on service start
+        NotificationCache.restoreFromDb(applicationContext)
         Log.i(TAG, "NotificationListenerService created")
     }
 
@@ -45,7 +52,9 @@ class NotificationListenerService : android.service.notification.NotificationLis
 
         if (title.isBlank() && body.isBlank()) return
 
-        // Resolve the human-readable app label
+        // Skip our own confirm notifications to avoid infinite loop
+        if (packageName == applicationContext.packageName) return
+
         val appLabel = try {
             applicationContext.packageManager
                 .getApplicationLabel(
@@ -68,7 +77,7 @@ class NotificationListenerService : android.service.notification.NotificationLis
             val walletName = matchedRule?.defaultWalletName?.takeIf { it.isNotBlank() }
                 ?: prefs.defaultWalletName
 
-            // Always add to the in-memory cache (regardless of auto-forward setting)
+            // Always add to the cache (persists to DB via context)
             NotificationCache.add(
                 CachedNotification(
                     key = key,
@@ -83,19 +92,21 @@ class NotificationListenerService : android.service.notification.NotificationLis
                     parsedWallet = walletName.takeIf { it.isNotBlank() },
                     isIncome = transaction?.isIncome ?: false,
                     matchedRuleName = matchedRule?.name ?: ""
-                )
+                ),
+                context = applicationContext
             )
 
-            // Auto-forward only when service is enabled
             if (!prefs.isEnabled) return@launch
             if (transaction == null) {
                 logEvent(packageName, title, body, null, null, null, false, "NO_AMOUNT", "")
                 return@launch
             }
             if (transaction.amount < prefs.minAmount && prefs.minAmount > 0) {
-                logEvent(packageName, title, body, transaction.amount, transaction.merchant,
+                logEvent(
+                    packageName, title, body, transaction.amount, transaction.merchant,
                     transaction.category, transaction.isIncome, "SKIPPED_MIN_AMOUNT",
-                    matchedRule?.name ?: "")
+                    matchedRule?.name ?: ""
+                )
                 return@launch
             }
 
@@ -112,26 +123,56 @@ class NotificationListenerService : android.service.notification.NotificationLis
                 recentEvents.entries.minByOrNull { it.value }?.let { recentEvents.remove(it.key) }
             }
 
-            // Launch Cashew
-            val intent = CashewLinkBuilder.buildIntent(transaction, walletName)
-            try {
-                applicationContext.startActivity(intent)
-                Log.i(TAG, "Cashew launched: ${transaction.amount}")
-                logEvent(packageName, title, body, transaction.amount, transaction.merchant,
-                    transaction.category, transaction.isIncome, "LAUNCHED",
-                    matchedRule?.name ?: "heuristic")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to launch Cashew", e)
-                logEvent(packageName, title, body, transaction.amount, transaction.merchant,
-                    transaction.category, transaction.isIncome, "FAILED: ${e.message}",
-                    matchedRule?.name ?: "")
+            if (prefs.confirmBeforeAdding) {
+                // Post a confirm notification instead of launching Cashew immediately
+                val uri = CashewLinkBuilder.buildUri(transaction, walletName).toString()
+                val typeLabel = if (transaction.isIncome) "Income" else "Expense"
+                val merchantPart = transaction.merchant?.let { " · $it" } ?: ""
+                val summary = "$typeLabel ${formatAmount(transaction.amount)}$merchantPart\nFrom $appLabel\n\nTap 'Send to Cashew' to confirm or 'Skip' to ignore."
+                NotificationHelper.postConfirmNotification(
+                    context = applicationContext,
+                    notifId = confirmIdCounter.incrementAndGet(),
+                    summary = summary,
+                    cashewUri = uri
+                )
+                logEvent(
+                    packageName, title, body, transaction.amount, transaction.merchant,
+                    transaction.category, transaction.isIncome, "PENDING_CONFIRM",
+                    matchedRule?.name ?: "heuristic"
+                )
+            } else {
+                // Auto-launch Cashew
+                val intent = CashewLinkBuilder.buildIntent(transaction, walletName)
+                try {
+                    applicationContext.startActivity(intent)
+                    Log.i(TAG, "Cashew launched: ${transaction.amount}")
+                    logEvent(
+                        packageName, title, body, transaction.amount, transaction.merchant,
+                        transaction.category, transaction.isIncome, "LAUNCHED",
+                        matchedRule?.name ?: "heuristic"
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to launch Cashew", e)
+                    logEvent(
+                        packageName, title, body, transaction.amount, transaction.merchant,
+                        transaction.category, transaction.isIncome, "FAILED: ${e.message}",
+                        matchedRule?.name ?: ""
+                    )
+                }
             }
         }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        val key = "${sbn.packageName}_${sbn.id}_${sbn.tag ?: "notag"}"
-        // Don't remove from cache on dismiss — keep for manual review
+        // Keep in cache on dismiss — available for manual review
+    }
+
+    private fun formatAmount(amount: Double): String {
+        return if (amount == amount.toLong().toDouble()) {
+            amount.toLong().toString()
+        } else {
+            "%.2f".format(amount)
+        }
     }
 
     private suspend fun logEvent(

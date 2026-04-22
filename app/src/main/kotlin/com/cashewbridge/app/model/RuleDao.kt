@@ -9,6 +9,9 @@ interface RuleDao {
     @Query("SELECT * FROM rules ORDER BY priority DESC, id ASC")
     fun getAllRules(): Flow<List<NotificationRule>>
 
+    @Query("SELECT * FROM rules ORDER BY priority DESC, id ASC")
+    suspend fun getAllRulesSync(): List<NotificationRule>
+
     @Query("SELECT * FROM rules WHERE isEnabled = 1 ORDER BY priority DESC, id ASC")
     suspend fun getEnabledRules(): List<NotificationRule>
 

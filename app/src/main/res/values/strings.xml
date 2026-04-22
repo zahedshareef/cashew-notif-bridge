@@ -18,9 +18,26 @@
     <string name="enable_service_detail">Start/stop notification monitoring</string>
     <string name="hint_wallet_name">Wallet Name in Cashew (optional)</string>
     <string name="hint_min_amount">Minimum Amount to Forward (0 = all)</string>
+    <string name="hint_dedup_window">Duplicate Skip Window (seconds)</string>
     <string name="confirm_before_adding">Confirm Before Adding</string>
+    <string name="confirm_before_adding_detail">Show a notification to approve each transaction</string>
     <string name="save_settings">Save Settings</string>
     <string name="settings_saved">Settings saved</string>
+
+    <!-- Theme -->
+    <string name="theme_label">App Theme</string>
+    <string name="theme_auto">Auto</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+
+    <!-- Battery optimization -->
+    <string name="battery_opt_title">Battery Optimization Active</string>
+    <string name="battery_opt_detail">Your device may kill this app in the background, causing missed notifications. Tap Fix to exempt it.</string>
+    <string name="battery_opt_fix">Fix This</string>
+
+    <!-- Stats -->
+    <string name="stats_none_today">No activity logged today</string>
+    <string name="stats_today">Today: %1$d forwarded · %2$d skipped · %3$d pending</string>
 
     <!-- Navigation -->
     <string name="create_rule_for_app">Create Rule for App</string>
@@ -43,6 +60,16 @@
     <string name="save">Save</string>
     <string name="delete">Delete</string>
     <string name="required">Required</string>
+    <string name="export_rules">Export Rules</string>
+    <string name="import_rules">Import Rules</string>
+    <string name="export_success">Exported %d rules</string>
+    <string name="export_failed">Export failed: %s</string>
+    <string name="import_success">Imported %d rules</string>
+    <string name="import_failed">Import failed: %s</string>
+
+    <!-- Test Rule -->
+    <string name="test_rule_empty">Enter sample text above first</string>
+    <string name="test_no_match">No match</string>
 
     <!-- Logs -->
     <string name="no_logs">No activity logged yet</string>
@@ -58,6 +85,7 @@
     <string name="notifications_cleared">Notifications cleared</string>
     <string name="dismiss">Dismiss</string>
     <string name="send_to_cashew_btn">Send to Cashew</string>
+    <string name="filter_all">All Apps</string>
 
     <!-- Send dialog -->
     <string name="send_to_cashew_title">Add to Cashew — %s</string>
@@ -74,7 +102,13 @@
     <string name="error_invalid_amount">Please enter a valid amount greater than 0</string>
     <string name="error_cashew_not_found">Cashew app not found. Is it installed?</string>
 
+    <!-- Onboarding -->
+    <string name="onboarding_title">Welcome to Cashew Bridge</string>
+    <string name="onboarding_message">This app reads your bank and payment notifications and automatically creates transactions in Cashew.\n\n1. Grant Notification Access so this app can read alerts.\n2. (Optional) Add rules to customize how amounts and merchants are parsed.\n3. Done — transactions flow into Cashew automatically.\n\nAll processing happens on your device. No data ever leaves it.</string>
+    <string name="onboarding_grant">Grant Access Now</string>
+    <string name="onboarding_later">I\'ll Do It Later</string>
+
     <!-- About -->
     <string name="about_title">About Cashew Bridge</string>
-    <string name="about_message">Cashew Bridge reads your bank/payment notifications and automatically creates transactions in the Cashew app using its App Link feature.\n\nYour notification data never leaves your device. No network access is used.\n\nVersion 1.0</string>
+    <string name="about_message">Cashew Bridge reads your bank/payment notifications and automatically creates transactions in the Cashew app using its App Link feature.\n\nYour notification data never leaves your device. No network access is used.\n\nVersion 1.1</string>
 </resources>

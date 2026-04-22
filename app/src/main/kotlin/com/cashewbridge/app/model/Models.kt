@@ -22,6 +22,9 @@ data class ParsedTransaction(
 
 /**
  * A user-defined rule for matching notifications and mapping to Cashew parameters.
+ *
+ * [autoDetectType] — when true, income/expense is inferred from notification keywords
+ *                   instead of always using [isIncome].
  */
 @Entity(tableName = "rules")
 data class NotificationRule(
@@ -37,7 +40,9 @@ data class NotificationRule(
     val defaultWalletName: String = "",
     val isIncome: Boolean = false,
     val isEnabled: Boolean = true,
-    val priority: Int = 0
+    val priority: Int = 0,
+    /** When true, use keyword heuristics to detect income vs expense instead of [isIncome]. */
+    val autoDetectType: Boolean = false
 ) : Parcelable {
 
     constructor(parcel: Parcel) : this(
@@ -52,7 +57,8 @@ data class NotificationRule(
         defaultWalletName = parcel.readString() ?: "",
         isIncome = parcel.readByte() != 0.toByte(),
         isEnabled = parcel.readByte() != 0.toByte(),
-        priority = parcel.readInt()
+        priority = parcel.readInt(),
+        autoDetectType = parcel.readByte() != 0.toByte()
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
@@ -68,6 +74,7 @@ data class NotificationRule(
         parcel.writeByte(if (isIncome) 1 else 0)
         parcel.writeByte(if (isEnabled) 1 else 0)
         parcel.writeInt(priority)
+        parcel.writeByte(if (autoDetectType) 1 else 0)
     }
 
     override fun describeContents() = 0
