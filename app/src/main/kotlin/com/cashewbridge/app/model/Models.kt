@@ -3,6 +3,7 @@ package com.cashewbridge.app.model
 import android.os.Parcel
 import android.os.Parcelable
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -128,7 +129,17 @@ data class NotificationRule(
     }
 }
 
-@Entity(tableName = "logs")
+@Entity(
+    tableName = "logs",
+    indices = [
+        // `timestamp` is filtered on every insights / summary / stats query.
+        Index("timestamp"),
+        // Most of those queries also filter by `actionTaken IN (...)`; the
+        // composite lets SQLite seek directly to matching rows instead of
+        // scanning the table.
+        Index("actionTaken", "timestamp")
+    ]
+)
 data class ProcessedLog(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
