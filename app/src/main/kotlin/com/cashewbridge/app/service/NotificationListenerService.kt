@@ -50,6 +50,9 @@ class NotificationListenerService : android.service.notification.NotificationLis
         db = AppDatabase.getInstance(applicationContext)
         NotificationHelper.createChannels(applicationContext)
         NotificationCache.restoreFromDb(applicationContext)
+        // ExistingPeriodicWorkPolicy.KEEP inside schedule() makes this
+        // idempotent — the 24h cycle doesn't reset every service restart.
+        LogRetentionWorker.schedule(applicationContext)
         Log.i(TAG, "NotificationListenerService created")
     }
 
@@ -178,6 +181,7 @@ class NotificationListenerService : android.service.notification.NotificationLis
                     return@launch
                 }
                 ruleCooldowns[matchedRule.id] = now
+                pruneStaleCooldowns(now)
             }
 
             // ── Large transaction alarm ───────────────────────────────────────
@@ -355,6 +359,10 @@ class NotificationListenerService : android.service.notification.NotificationLis
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         setExactOrFallback(triggerAt, pi)
+    }
+
+    private fun pruneStaleCooldowns(now: Long) {
+        CooldownPruner.prune(ruleCooldowns, now)
     }
 
     /**

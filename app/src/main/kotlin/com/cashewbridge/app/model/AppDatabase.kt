@@ -15,7 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         BatchedTransaction::class,
         AppBlocklistEntry::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -104,6 +104,20 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Migration v4 → v5:
+         *  - Adds indices on `logs.timestamp` and `logs.(actionTaken, timestamp)`.
+         *    The insights / summary / today-stats queries all filter on these
+         *    columns and were full-scanning the table. Index names must match
+         *    what Room would generate for `@Index` so schema validation passes.
+         */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_logs_timestamp` ON `logs` (`timestamp`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_logs_actionTaken_timestamp` ON `logs` (`actionTaken`, `timestamp`)")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
@@ -111,7 +125,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "cashew_bridge.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { INSTANCE = it }
             }
