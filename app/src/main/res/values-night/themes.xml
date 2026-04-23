@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Theme.CashewBridge" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Brand -->
+        <item name="colorPrimary">@color/brand_green</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/brand_green_tint</item>
+        <item name="colorOnPrimaryContainer">@color/brand_green_dark</item>
+
+        <item name="colorSecondary">@color/brand_green_dark</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Surfaces / background -->
+        <item name="android:colorBackground">@color/app_background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        <item name="colorOnSurfaceVariant">@color/on_surface_muted</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
+        <item name="colorSurfaceContainer">@color/surface_container</item>
+        <item name="colorOutline">@color/outline</item>
+        <item name="colorOutlineVariant">@color/outline_soft</item>
+
+        <!-- Errors -->
+        <item name="colorError">@color/status_error</item>
+        <item name="colorOnError">@color/white</item>
+
+        <!-- System bars: light icons on dark background in night mode -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">?android:colorBackground</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:enforceStatusBarContrast" tools:targetApi="q">false</item>
+
+        <!-- Shape defaults -->
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.Cashew.Small</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.Cashew.Medium</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.Cashew.Large</item>
+    </style>
+
+</resources>

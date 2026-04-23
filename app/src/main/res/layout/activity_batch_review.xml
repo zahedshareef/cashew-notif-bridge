@@ -3,19 +3,19 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        app:liftOnScroll="true">
 
-        <androidx.appcompat.widget.Toolbar
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="Review Batch"
-            app:titleTextColor="?attr/colorOnPrimary"
-            android:background="?attr/colorPrimary" />
+            app:title="@string/title_batch_review" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -23,6 +23,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
+        android:paddingBottom="80dp"
+        android:clipToPadding="false"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <TextView
@@ -33,14 +35,14 @@
             android:paddingBottom="4dp"
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:alpha="0.6"
-            android:text="Review and send each transaction to Cashew, or send/dismiss them all at once." />
+            android:text="@string/batch_review_hint" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:padding="8dp"
+            android:padding="16dp"
             android:clipToPadding="false" />
 
         <TextView
@@ -49,7 +51,7 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="No transactions in batch"
+            android:text="@string/batch_empty"
             android:textAppearance="?attr/textAppearanceBodyLarge"
             android:alpha="0.5"
             android:visibility="gone" />
@@ -66,17 +68,21 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                android:text="Send All to Cashew" />
+                android:text="@string/batch_send_all" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_dismiss_all"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Dismiss All"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                android:text="@string/batch_dismiss_all"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
 
         </LinearLayout>
     </LinearLayout>
+
+    <include
+        android:id="@+id/bottom_nav"
+        layout="@layout/view_bottom_nav" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

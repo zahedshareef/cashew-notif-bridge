@@ -3,19 +3,19 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        app:liftOnScroll="true">
 
-        <androidx.appcompat.widget.Toolbar
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="@string/title_notifications"
-            app:titleTextColor="?attr/colorOnPrimary"
-            android:background="?attr/colorPrimary" />
+            app:title="@string/title_notifications" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -23,6 +23,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
+        android:paddingBottom="80dp"
+        android:clipToPadding="false"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <!-- Top bar: count + clear button -->
@@ -40,15 +42,14 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textAppearance="?attr/textAppearanceLabelLarge"
-                android:text="0 notifications" />
+                android:textAppearance="?attr/textAppearanceLabelLarge" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_clear_all"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/clear_all"
-                style="@style/Widget.MaterialComponents.Button.TextButton" />
+                style="@style/Widget.Material3.Button.TextButton" />
 
         </LinearLayout>
 
@@ -74,7 +75,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:padding="8dp"
+            android:padding="16dp"
             android:clipToPadding="false" />
 
     </LinearLayout>
@@ -115,5 +116,9 @@
             android:gravity="center" />
 
     </LinearLayout>
+
+    <include
+        android:id="@+id/bottom_nav"
+        layout="@layout/view_bottom_nav" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

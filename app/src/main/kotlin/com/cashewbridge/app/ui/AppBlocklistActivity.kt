@@ -41,6 +41,7 @@ class AppBlocklistActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        BottomNavHelper.setup(this, binding.bottomNav.root, R.id.nav_more)
 
         db = AppDatabase.getInstance(this)
         adapter = BlocklistAdapter(

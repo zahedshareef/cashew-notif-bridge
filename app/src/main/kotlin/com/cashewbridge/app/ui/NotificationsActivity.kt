@@ -55,6 +55,7 @@ class NotificationsActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        BottomNavHelper.setup(this, binding.bottomNav.root, R.id.nav_notifications)
 
         prefs = AppPreferences(this)
         db = AppDatabase.getInstance(this)

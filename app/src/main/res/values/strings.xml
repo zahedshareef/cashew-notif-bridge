@@ -74,6 +74,12 @@
     <string name="title_rules">Notification Rules</string>
     <string name="title_logs">Activity Log</string>
     <string name="title_notifications">Incoming Notifications</string>
+    <string name="title_batch_review">Review Batch</string>
+    <string name="batch_review_hint">Review and send each transaction to Cashew, or send/dismiss them all at once.</string>
+    <string name="batch_send_all">Send All to Cashew</string>
+    <string name="batch_dismiss_all">Dismiss All</string>
+    <string name="batch_empty">No transactions in batch</string>
+    <string name="no_blocklist_apps">No apps seen yet.\nNotifications will appear here as they arrive.</string>
 
     <!-- Theme -->
     <string name="theme_label">App Theme</string>
@@ -101,6 +107,10 @@
     <string name="section_detection">Detection</string>
     <string name="section_appearance">Appearance</string>
     <string name="section_explore">More</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_more">More</string>
 
     <!-- Nav tile subtitles -->
     <string name="nav_insights_sub">Totals of what the bridge forwarded</string>

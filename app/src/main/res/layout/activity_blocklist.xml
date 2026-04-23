@@ -3,16 +3,18 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <androidx.appcompat.widget.Toolbar
+        android:layout_height="wrap_content"
+        app:liftOnScroll="true">
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:title="App Blocklist"
+            app:title="@string/view_blocklist"
             app:navigationIconTint="?attr/colorOnSurface" />
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -20,13 +22,15 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
+        android:paddingBottom="80dp"
+        android:clipToPadding="false"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <TextView
             android:id="@+id/tv_empty_blocklist"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="No apps seen yet.\nNotifications will appear here as they arrive."
+            android:text="@string/no_blocklist_apps"
             android:textAlignment="center"
             android:padding="32dp"
             android:visibility="gone"
@@ -37,5 +41,9 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </LinearLayout>
+
+    <include
+        android:id="@+id/bottom_nav"
+        layout="@layout/view_bottom_nav" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

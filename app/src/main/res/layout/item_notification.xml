@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="6dp"
-    app:cardCornerRadius="12dp"
+    app:cardCornerRadius="10dp"
     app:cardElevation="2dp"
     android:foreground="?attr/selectableItemBackground"
     android:clickable="true"
@@ -128,7 +128,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/dismiss"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:textSize="12sp" />
 
         </LinearLayout>
@@ -142,7 +142,7 @@
             android:textSize="11sp"
             android:paddingStart="0dp"
             android:paddingEnd="0dp"
-            style="@style/Widget.MaterialComponents.Button.TextButton" />
+            style="@style/Widget.Material3.Button.TextButton" />
 
     </LinearLayout>
 

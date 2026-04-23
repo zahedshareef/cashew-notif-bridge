@@ -16,7 +16,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.cashewbridge.app.R
 import com.cashewbridge.app.databinding.ActivityMainBinding
-import com.cashewbridge.app.databinding.ViewNavTileBinding
 import com.cashewbridge.app.databinding.ViewSettingRowBinding
 import com.cashewbridge.app.databinding.ViewStatTileBinding
 import com.cashewbridge.app.model.AppDatabase
@@ -48,7 +47,7 @@ class MainActivity : AppCompatActivity() {
 
         configureSettingRows()
         configureStatTiles()
-        configureNavTiles()
+        setupBottomNav()
 
         binding.btnGrantPermission.setOnClickListener {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
@@ -94,6 +93,7 @@ class MainActivity : AppCompatActivity() {
         updateStatusCard()
         checkBatteryOptimization()
         loadStats()
+        binding.bottomNav.root.menu.findItem(R.id.nav_home)?.isChecked = true
     }
 
     // ── UI scaffolding ────────────────────────────────────────────────────────
@@ -129,46 +129,8 @@ class MainActivity : AppCompatActivity() {
         row.rowSubtitle.setText(subtitleRes)
     }
 
-    private fun configureNavTiles() {
-        bindNavTile(binding.btnInsights,
-            R.string.view_insights, R.string.nav_insights_sub,
-            R.drawable.ic_insights, R.color.tile_insights, R.color.tile_insights_bg) {
-            startActivity(Intent(this, InsightsActivity::class.java))
-        }
-        bindNavTile(binding.btnNotifications,
-            R.string.view_notifications, R.string.nav_notifications_sub,
-            R.drawable.ic_notifications_tile, R.color.tile_notifications, R.color.tile_notifications_bg) {
-            startActivity(Intent(this, NotificationsActivity::class.java))
-        }
-        bindNavTile(binding.btnRules,
-            R.string.manage_rules, R.string.nav_rules_sub,
-            R.drawable.ic_rules, R.color.tile_rules, R.color.tile_rules_bg) {
-            startActivity(Intent(this, RulesActivity::class.java))
-        }
-        bindNavTile(binding.btnBlocklist,
-            R.string.view_blocklist, R.string.nav_blocklist_sub,
-            R.drawable.ic_blocklist, R.color.tile_blocklist, R.color.tile_blocklist_bg) {
-            startActivity(Intent(this, AppBlocklistActivity::class.java))
-        }
-        bindNavTile(binding.btnLogs,
-            R.string.view_logs, R.string.nav_logs_sub,
-            R.drawable.ic_logs, R.color.tile_logs, R.color.tile_logs_bg) {
-            startActivity(Intent(this, LogsActivity::class.java))
-        }
-    }
-
-    private fun bindNavTile(
-        tile: ViewNavTileBinding,
-        titleRes: Int, subtitleRes: Int,
-        iconRes: Int, iconTintColor: Int, bgTintColor: Int,
-        onClick: () -> Unit
-    ) {
-        tile.tileTitle.setText(titleRes)
-        tile.tileSubtitle.setText(subtitleRes)
-        tile.tileIcon.setImageResource(iconRes)
-        tile.tileIcon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, iconTintColor))
-        tile.tileIconBg.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, bgTintColor))
-        tile.root.setOnClickListener { onClick() }
+    private fun setupBottomNav() {
+        BottomNavHelper.setup(this, binding.bottomNav.root, R.id.nav_home)
     }
 
     // ── Theme ─────────────────────────────────────────────────────────────────

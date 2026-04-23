@@ -36,6 +36,11 @@ class BatchReviewActivity : AppCompatActivity() {
         val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        BottomNavHelper.setup(
+            this,
+            findViewById(R.id.bottom_nav),
+            R.id.nav_more
+        )
 
         recycler = findViewById(R.id.recycler)
         tvEmpty = findViewById(R.id.tv_empty)

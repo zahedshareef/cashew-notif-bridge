@@ -41,6 +41,7 @@ class InsightsActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        BottomNavHelper.setup(this, binding.bottomNav.root, R.id.nav_insights)
 
         db = AppDatabase.getInstance(this)
         loadInsights()

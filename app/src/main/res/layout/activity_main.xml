@@ -15,7 +15,7 @@
         android:stateListAnimator="@null"
         app:elevation="0dp">
 
-        <androidx.appcompat.widget.Toolbar
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
@@ -30,6 +30,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
+        android:paddingBottom="80dp"
         android:overScrollMode="ifContentScrolls"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
@@ -629,47 +630,11 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ══ EXPLORE / NAV TILES ═══════════════════════════════════════ -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/section_explore"
-                android:textAppearance="@style/TextAppearance.Cashew.SectionHeader"
-                android:layout_marginStart="4dp"
-                android:layout_marginBottom="10dp" />
-
-            <include
-                android:id="@+id/btn_insights"
-                layout="@layout/view_nav_tile" />
-
-            <include
-                android:id="@+id/btn_notifications"
-                layout="@layout/view_nav_tile"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp" />
-
-            <include
-                android:id="@+id/btn_rules"
-                layout="@layout/view_nav_tile"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp" />
-
-            <include
-                android:id="@+id/btn_blocklist"
-                layout="@layout/view_nav_tile"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp" />
-
-            <include
-                android:id="@+id/btn_logs"
-                layout="@layout/view_nav_tile"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp" />
-
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <include
+        android:id="@+id/bottom_nav"
+        layout="@layout/view_bottom_nav" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
