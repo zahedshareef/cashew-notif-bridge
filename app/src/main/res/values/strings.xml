@@ -89,6 +89,25 @@
     <!-- Stats -->
     <string name="stats_none_today">No activity logged today</string>
     <string name="stats_today">Today: %1$d forwarded · %2$d skipped · %3$d pending</string>
+    <string name="stats_today_label">Today</string>
+    <string name="stat_label_forwarded">Forwarded</string>
+    <string name="stat_label_skipped">Skipped</string>
+    <string name="stat_label_pending">Pending</string>
+
+    <!-- Section headers -->
+    <string name="section_core">Configuration</string>
+    <string name="section_review">Smart Review</string>
+    <string name="section_workflow">Workflows</string>
+    <string name="section_detection">Detection</string>
+    <string name="section_appearance">Appearance</string>
+    <string name="section_explore">More</string>
+
+    <!-- Nav tile subtitles -->
+    <string name="nav_insights_sub">Spending trends &amp; totals</string>
+    <string name="nav_blocklist_sub">Mute apps you don’t want parsed</string>
+    <string name="nav_notifications_sub">Recent alerts captured</string>
+    <string name="nav_rules_sub">Custom parsers per app</string>
+    <string name="nav_logs_sub">Everything the bridge did</string>
 
     <!-- Rules -->
     <string name="no_rules">No rules yet.\nTap + to add your first rule.</string>

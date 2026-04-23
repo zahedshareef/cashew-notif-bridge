@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_stat_tile"
+    android:paddingStart="14dp"
+    android:paddingEnd="14dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="14dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="6dp">
+
+        <View
+            android:id="@+id/stat_dot"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/bg_stat_dot_forwarded" />
+
+        <TextView
+            android:id="@+id/stat_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stat_label_forwarded"
+            android:textAppearance="@style/TextAppearance.Cashew.StatLabel" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/stat_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:textAppearance="@style/TextAppearance.Cashew.StatValue" />
+</LinearLayout>

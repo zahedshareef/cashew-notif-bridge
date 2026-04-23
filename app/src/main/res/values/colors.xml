@@ -1,16 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="green_600">#43A047</color>
-    <color name="green_800">#2E7D32</color>
+
+    <!-- Brand -->
+    <color name="brand_green">#00A86B</color>
+    <color name="brand_green_dark">#008755</color>
+    <color name="brand_green_light">#1FBF82</color>
+    <color name="brand_green_tint">#E6F7F0</color>
+
+    <!-- Legacy (kept for other screens that reference these) -->
+    <color name="green_600">#00A86B</color>
+    <color name="green_800">#008755</color>
     <color name="teal_200">#80CBC4</color>
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
-    <color name="status_active">#2E7D32</color>
-    <color name="status_error">#C62828</color>
-    <color name="status_paused">#F57C00</color>
+
+    <!-- Semantic -->
+    <color name="status_active">#00A86B</color>
+    <color name="status_error">#E5484D</color>
+    <color name="status_paused">#F5A524</color>
+    <color name="status_info">#3E7BFA</color>
+
+    <color name="status_active_bg">#E6F7F0</color>
+    <color name="status_error_bg">#FDECEE</color>
+    <color name="status_paused_bg">#FEF4E1</color>
+    <color name="status_info_bg">#EAF1FE</color>
+
+    <!-- Surfaces (light) -->
+    <color name="app_background">#F6F7F8</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F1F3F5</color>
+    <color name="surface_container">#FAFBFC</color>
+    <color name="outline">#E4E7EB</color>
+    <color name="outline_soft">#EEF0F3</color>
+    <color name="on_surface">#0F1419</color>
+    <color name="on_surface_muted">#5A6472</color>
+    <color name="on_surface_subtle">#8A94A0</color>
+
     <!-- Chip backgrounds for notification items -->
-    <color name="chip_income_bg">#E8F5E9</color>
-    <color name="chip_expense_bg">#FFEBEE</color>
-    <color name="chip_neutral_bg">#F5F5F5</color>
-    <color name="chip_neutral_text">#757575</color>
+    <color name="chip_income_bg">#E6F7F0</color>
+    <color name="chip_expense_bg">#FDECEE</color>
+    <color name="chip_neutral_bg">#F1F3F5</color>
+    <color name="chip_neutral_text">#5A6472</color>
+
+    <!-- Nav tile accents -->
+    <color name="tile_insights">#3E7BFA</color>
+    <color name="tile_insights_bg">#EAF1FE</color>
+    <color name="tile_blocklist">#E5484D</color>
+    <color name="tile_blocklist_bg">#FDECEE</color>
+    <color name="tile_notifications">#00A86B</color>
+    <color name="tile_notifications_bg">#E6F7F0</color>
+    <color name="tile_rules">#8B5CF6</color>
+    <color name="tile_rules_bg">#F1EBFE</color>
+    <color name="tile_logs">#F5A524</color>
+    <color name="tile_logs_bg">#FEF4E1</color>
+
 </resources>

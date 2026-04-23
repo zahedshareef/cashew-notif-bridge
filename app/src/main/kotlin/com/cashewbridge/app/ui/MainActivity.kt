@@ -3,6 +3,7 @@ package com.cashewbridge.app.ui
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
@@ -11,9 +12,13 @@ import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.cashewbridge.app.R
 import com.cashewbridge.app.databinding.ActivityMainBinding
+import com.cashewbridge.app.databinding.ViewNavTileBinding
+import com.cashewbridge.app.databinding.ViewSettingRowBinding
+import com.cashewbridge.app.databinding.ViewStatTileBinding
 import com.cashewbridge.app.model.AppDatabase
 import com.cashewbridge.app.prefs.AppPreferences
 import com.cashewbridge.app.service.ReminderReceiver
@@ -41,24 +46,12 @@ class MainActivity : AppCompatActivity() {
 
         db = AppDatabase.getInstance(this)
 
+        configureSettingRows()
+        configureStatTiles()
+        configureNavTiles()
+
         binding.btnGrantPermission.setOnClickListener {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-        }
-
-        binding.btnNotifications.setOnClickListener {
-            startActivity(Intent(this, NotificationsActivity::class.java))
-        }
-        binding.btnRules.setOnClickListener {
-            startActivity(Intent(this, RulesActivity::class.java))
-        }
-        binding.btnLogs.setOnClickListener {
-            startActivity(Intent(this, LogsActivity::class.java))
-        }
-        binding.btnInsights.setOnClickListener {
-            startActivity(Intent(this, InsightsActivity::class.java))
-        }
-        binding.btnBlocklist.setOnClickListener {
-            startActivity(Intent(this, AppBlocklistActivity::class.java))
         }
 
         binding.switchEnabled.setOnCheckedChangeListener { _, isChecked ->
@@ -67,28 +60,23 @@ class MainActivity : AppCompatActivity() {
         }
         binding.switchEnabled.isChecked = prefs.isEnabled
 
-        // Batch mode
-        binding.switchBatch.setOnCheckedChangeListener { _, checked ->
+        binding.rowBatch.rowSwitch.setOnCheckedChangeListener { _, checked ->
             binding.layoutBatchWindow.visibility = if (checked) View.VISIBLE else View.GONE
         }
-        // Reminder
-        binding.switchReminder.setOnCheckedChangeListener { _, checked ->
+        binding.rowReminder.rowSwitch.setOnCheckedChangeListener { _, checked ->
             binding.layoutReminderInterval.visibility = if (checked) View.VISIBLE else View.GONE
         }
-        // Summary
-        binding.switchSummary.setOnCheckedChangeListener { _, checked ->
+        binding.rowSummary.rowSwitch.setOnCheckedChangeListener { _, checked ->
             binding.layoutSummaryOptions.visibility = if (checked) View.VISIBLE else View.GONE
         }
 
         binding.btnSaveSettings.setOnClickListener { saveSettings() }
 
-        // Theme
         binding.btnThemeAuto.setOnClickListener { applyThemeMode(0) }
         binding.btnThemeLight.setOnClickListener { applyThemeMode(1) }
         binding.btnThemeDark.setOnClickListener { applyThemeMode(2) }
         updateThemeButtons()
 
-        // Battery
         binding.btnFixBattery.setOnClickListener { openBatteryOptimizationSettings() }
         binding.btnDismissBattery.setOnClickListener {
             prefs.batteryOptDismissed = true
@@ -108,6 +96,81 @@ class MainActivity : AppCompatActivity() {
         loadStats()
     }
 
+    // ── UI scaffolding ────────────────────────────────────────────────────────
+
+    private fun configureStatTiles() {
+        bindStat(binding.statForwarded, getString(R.string.stat_label_forwarded),
+            R.drawable.bg_stat_dot_forwarded)
+        bindStat(binding.statSkipped, getString(R.string.stat_label_skipped),
+            R.drawable.bg_stat_dot_skipped)
+        bindStat(binding.statPending, getString(R.string.stat_label_pending),
+            R.drawable.bg_stat_dot_pending)
+    }
+
+    private fun bindStat(tile: ViewStatTileBinding, label: String, dotRes: Int) {
+        tile.statLabel.text = label
+        tile.statDot.setBackgroundResource(dotRes)
+        tile.statValue.text = "0"
+    }
+
+    private fun configureSettingRows() {
+        bindRow(binding.rowConfirm, R.string.confirm_before_adding, R.string.confirm_before_adding_detail)
+        bindRow(binding.rowAutoDismiss, R.string.auto_dismiss_source, R.string.auto_dismiss_source_detail)
+        bindRow(binding.rowUndo, R.string.undo_send, R.string.undo_send_detail)
+        bindRow(binding.rowPrivacy, R.string.privacy_mode, R.string.privacy_mode_detail)
+        bindRow(binding.rowBatch, R.string.batch_mode, R.string.batch_mode_detail)
+        bindRow(binding.rowReminder, R.string.reminder_enabled, R.string.reminder_enabled_detail)
+        bindRow(binding.rowSummary, R.string.summary_enabled, R.string.summary_enabled_detail)
+        bindRow(binding.rowFuzzy, R.string.fuzzy_dedup, R.string.fuzzy_dedup_detail)
+    }
+
+    private fun bindRow(row: ViewSettingRowBinding, titleRes: Int, subtitleRes: Int) {
+        row.rowTitle.setText(titleRes)
+        row.rowSubtitle.setText(subtitleRes)
+    }
+
+    private fun configureNavTiles() {
+        bindNavTile(binding.btnInsights,
+            R.string.view_insights, R.string.nav_insights_sub,
+            R.drawable.ic_insights, R.color.tile_insights, R.color.tile_insights_bg) {
+            startActivity(Intent(this, InsightsActivity::class.java))
+        }
+        bindNavTile(binding.btnNotifications,
+            R.string.view_notifications, R.string.nav_notifications_sub,
+            R.drawable.ic_notifications_tile, R.color.tile_notifications, R.color.tile_notifications_bg) {
+            startActivity(Intent(this, NotificationsActivity::class.java))
+        }
+        bindNavTile(binding.btnRules,
+            R.string.manage_rules, R.string.nav_rules_sub,
+            R.drawable.ic_rules, R.color.tile_rules, R.color.tile_rules_bg) {
+            startActivity(Intent(this, RulesActivity::class.java))
+        }
+        bindNavTile(binding.btnBlocklist,
+            R.string.view_blocklist, R.string.nav_blocklist_sub,
+            R.drawable.ic_blocklist, R.color.tile_blocklist, R.color.tile_blocklist_bg) {
+            startActivity(Intent(this, AppBlocklistActivity::class.java))
+        }
+        bindNavTile(binding.btnLogs,
+            R.string.view_logs, R.string.nav_logs_sub,
+            R.drawable.ic_logs, R.color.tile_logs, R.color.tile_logs_bg) {
+            startActivity(Intent(this, LogsActivity::class.java))
+        }
+    }
+
+    private fun bindNavTile(
+        tile: ViewNavTileBinding,
+        titleRes: Int, subtitleRes: Int,
+        iconRes: Int, iconTintColor: Int, bgTintColor: Int,
+        onClick: () -> Unit
+    ) {
+        tile.tileTitle.setText(titleRes)
+        tile.tileSubtitle.setText(subtitleRes)
+        tile.tileIcon.setImageResource(iconRes)
+        tile.tileIcon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, iconTintColor))
+        tile.tileIconBg.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, bgTintColor))
+        tile.root.setOnClickListener { onClick() }
+    }
+
     // ── Theme ─────────────────────────────────────────────────────────────────
 
     private fun applyTheme() {
@@ -122,10 +185,12 @@ class MainActivity : AppCompatActivity() {
     private fun applyThemeMode(mode: Int) { prefs.themeMode = mode; applyTheme(); updateThemeButtons() }
 
     private fun updateThemeButtons() {
-        val mode = prefs.themeMode
-        binding.btnThemeAuto.isSelected = mode == 0
-        binding.btnThemeLight.isSelected = mode == 1
-        binding.btnThemeDark.isSelected = mode == 2
+        val id = when (prefs.themeMode) {
+            1 -> R.id.btn_theme_light
+            2 -> R.id.btn_theme_dark
+            else -> R.id.btn_theme_auto
+        }
+        binding.toggleTheme.check(id)
     }
 
     // ── Status card ───────────────────────────────────────────────────────────
@@ -142,21 +207,36 @@ class MainActivity : AppCompatActivity() {
         when {
             !hasPermission -> {
                 binding.statusIcon.setImageResource(R.drawable.ic_status_error)
+                binding.statusIcon.imageTintList = ColorStateList.valueOf(
+                    ContextCompat.getColor(this, R.color.status_error))
+                binding.statusIconBg.backgroundTintList = ColorStateList.valueOf(
+                    ContextCompat.getColor(this, R.color.status_error_bg))
                 binding.statusTitle.text = getString(R.string.status_no_permission)
                 binding.statusSubtitle.text = getString(R.string.status_no_permission_detail)
                 binding.btnGrantPermission.isEnabled = true
+                binding.btnGrantPermission.visibility = View.VISIBLE
             }
             !serviceEnabled -> {
                 binding.statusIcon.setImageResource(R.drawable.ic_status_paused)
+                binding.statusIcon.imageTintList = ColorStateList.valueOf(
+                    ContextCompat.getColor(this, R.color.status_paused))
+                binding.statusIconBg.backgroundTintList = ColorStateList.valueOf(
+                    ContextCompat.getColor(this, R.color.status_paused_bg))
                 binding.statusTitle.text = getString(R.string.status_paused)
                 binding.statusSubtitle.text = getString(R.string.status_paused_detail)
                 binding.btnGrantPermission.isEnabled = false
+                binding.btnGrantPermission.visibility = View.GONE
             }
             else -> {
                 binding.statusIcon.setImageResource(R.drawable.ic_status_active)
+                binding.statusIcon.imageTintList = ColorStateList.valueOf(
+                    ContextCompat.getColor(this, R.color.status_active))
+                binding.statusIconBg.backgroundTintList = ColorStateList.valueOf(
+                    ContextCompat.getColor(this, R.color.status_active_bg))
                 binding.statusTitle.text = getString(R.string.status_active)
                 binding.statusSubtitle.text = getString(R.string.status_active_detail)
                 binding.btnGrantPermission.isEnabled = false
+                binding.btnGrantPermission.visibility = View.GONE
             }
         }
     }
@@ -173,10 +253,9 @@ class MainActivity : AppCompatActivity() {
             val forwarded = withContext(Dispatchers.IO) { db.logDao().countForwardedSince(startOfDay) }
             val skipped = withContext(Dispatchers.IO) { db.logDao().countSkippedSince(startOfDay) }
             val pending = withContext(Dispatchers.IO) { db.logDao().countPendingSince(startOfDay) }
-            binding.tvStats.text = when {
-                forwarded + skipped + pending == 0 -> getString(R.string.stats_none_today)
-                else -> getString(R.string.stats_today, forwarded, skipped, pending)
-            }
+            binding.statForwarded.statValue.text = forwarded.toString()
+            binding.statSkipped.statValue.text = skipped.toString()
+            binding.statPending.statValue.text = pending.toString()
         }
     }
 
@@ -217,60 +296,55 @@ class MainActivity : AppCompatActivity() {
     private fun loadSettings() {
         binding.etWalletName.setText(prefs.defaultWalletName)
         binding.etMinAmount.setText(if (prefs.minAmount > 0) prefs.minAmount.toString() else "")
-        binding.switchConfirm.isChecked = prefs.confirmBeforeAdding
+        binding.rowConfirm.rowSwitch.isChecked = prefs.confirmBeforeAdding
         val dedupSec = prefs.skipDuplicateWindowMs / 1000
         binding.etDedupWindow.setText(if (dedupSec > 0) dedupSec.toString() else "5")
 
-        binding.switchAutoDismiss.isChecked = prefs.autoDismissSource
-        binding.switchUndo.isChecked = prefs.undoEnabled
-        binding.switchPrivacy.isChecked = prefs.privacyMode
+        binding.rowAutoDismiss.rowSwitch.isChecked = prefs.autoDismissSource
+        binding.rowUndo.rowSwitch.isChecked = prefs.undoEnabled
+        binding.rowPrivacy.rowSwitch.isChecked = prefs.privacyMode
         val threshold = prefs.largeTransactionThreshold
         binding.etLargeTxThreshold.setText(if (threshold > 0) threshold.toString() else "")
 
-        binding.switchBatch.isChecked = prefs.batchMode
+        binding.rowBatch.rowSwitch.isChecked = prefs.batchMode
         binding.etBatchWindow.setText(prefs.batchWindowMinutes.toString())
         binding.layoutBatchWindow.visibility = if (prefs.batchMode) View.VISIBLE else View.GONE
 
-        binding.switchReminder.isChecked = prefs.reminderEnabled
+        binding.rowReminder.rowSwitch.isChecked = prefs.reminderEnabled
         binding.etReminderInterval.setText(prefs.reminderIntervalMinutes.toString())
         binding.layoutReminderInterval.visibility = if (prefs.reminderEnabled) View.VISIBLE else View.GONE
 
-        // #5 Summary
-        binding.switchSummary.isChecked = prefs.summaryEnabled
+        binding.rowSummary.rowSwitch.isChecked = prefs.summaryEnabled
         binding.etSummaryHour.setText(prefs.summaryHour.toString())
         binding.toggleSummaryFrequency.check(
             if (prefs.summaryFrequency == 1) R.id.btn_summary_weekly else R.id.btn_summary_daily
         )
         binding.layoutSummaryOptions.visibility = if (prefs.summaryEnabled) View.VISIBLE else View.GONE
 
-        // #12 Fuzzy dedup
-        binding.switchFuzzyDedup.isChecked = prefs.fuzzyDedupEnabled
+        binding.rowFuzzy.rowSwitch.isChecked = prefs.fuzzyDedupEnabled
     }
 
     private fun saveSettings() {
         prefs.defaultWalletName = binding.etWalletName.text.toString().trim()
         prefs.minAmount = binding.etMinAmount.text.toString().toDoubleOrNull() ?: 0.0
-        prefs.confirmBeforeAdding = binding.switchConfirm.isChecked
+        prefs.confirmBeforeAdding = binding.rowConfirm.rowSwitch.isChecked
         val dedupSec = binding.etDedupWindow.text.toString().toLongOrNull() ?: 5L
         prefs.skipDuplicateWindowMs = dedupSec.coerceAtLeast(1L) * 1000L
 
-        prefs.autoDismissSource = binding.switchAutoDismiss.isChecked
-        prefs.undoEnabled = binding.switchUndo.isChecked
-        prefs.privacyMode = binding.switchPrivacy.isChecked
+        prefs.autoDismissSource = binding.rowAutoDismiss.rowSwitch.isChecked
+        prefs.undoEnabled = binding.rowUndo.rowSwitch.isChecked
+        prefs.privacyMode = binding.rowPrivacy.rowSwitch.isChecked
         prefs.largeTransactionThreshold = binding.etLargeTxThreshold.text.toString().toDoubleOrNull() ?: 0.0
-        prefs.batchMode = binding.switchBatch.isChecked
+        prefs.batchMode = binding.rowBatch.rowSwitch.isChecked
         prefs.batchWindowMinutes = binding.etBatchWindow.text.toString().toIntOrNull()?.coerceAtLeast(1) ?: 15
 
-        // Reminder
         val reminderWasEnabled = prefs.reminderEnabled
-        prefs.reminderEnabled = binding.switchReminder.isChecked
+        prefs.reminderEnabled = binding.rowReminder.rowSwitch.isChecked
         prefs.reminderIntervalMinutes = binding.etReminderInterval.text.toString().toIntOrNull()?.coerceAtLeast(5) ?: 30
         if (prefs.reminderEnabled && !reminderWasEnabled) scheduleReminderAlarm()
         else if (!prefs.reminderEnabled) cancelReminderAlarm()
 
-        // #5 Summary
-        val summaryWasEnabled = prefs.summaryEnabled
-        prefs.summaryEnabled = binding.switchSummary.isChecked
+        prefs.summaryEnabled = binding.rowSummary.rowSwitch.isChecked
         prefs.summaryHour = binding.etSummaryHour.text.toString().toIntOrNull()?.coerceIn(0, 23) ?: 21
         prefs.summaryFrequency = if (binding.toggleSummaryFrequency.checkedButtonId == R.id.btn_summary_weekly) 1 else 0
         if (prefs.summaryEnabled) {
@@ -279,8 +353,7 @@ class MainActivity : AppCompatActivity() {
             SummaryReceiver.cancel(this)
         }
 
-        // #12 Fuzzy dedup
-        prefs.fuzzyDedupEnabled = binding.switchFuzzyDedup.isChecked
+        prefs.fuzzyDedupEnabled = binding.rowFuzzy.rowSwitch.isChecked
 
         Snackbar.make(binding.root, R.string.settings_saved, Snackbar.LENGTH_SHORT).show()
     }

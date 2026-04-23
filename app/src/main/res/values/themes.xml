@@ -1,12 +1,86 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <style name="Theme.CashewBridge" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/green_600</item>
-        <item name="colorPrimaryVariant">@color/green_800</item>
+        <!-- Brand -->
+        <item name="colorPrimary">@color/brand_green</item>
         <item name="colorOnPrimary">@color/white</item>
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorPrimaryContainer">@color/brand_green_tint</item>
+        <item name="colorOnPrimaryContainer">@color/brand_green_dark</item>
+
+        <item name="colorSecondary">@color/brand_green_dark</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Surfaces / background -->
+        <item name="android:colorBackground">@color/app_background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        <item name="colorOnSurfaceVariant">@color/on_surface_muted</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
+        <item name="colorSurfaceContainer">@color/surface_container</item>
+        <item name="colorOutline">@color/outline</item>
+        <item name="colorOutlineVariant">@color/outline_soft</item>
+
+        <!-- Errors -->
+        <item name="colorError">@color/status_error</item>
+        <item name="colorOnError">@color/white</item>
+
+        <!-- System bars: edge-to-edge with translucent status/nav bars -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">?android:colorBackground</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:enforceStatusBarContrast" tools:targetApi="q">false</item>
+
+        <!-- Shape defaults -->
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.Cashew.Small</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.Cashew.Medium</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.Cashew.Large</item>
+    </style>
+
+    <style name="ShapeAppearance.Cashew.Small" parent="ShapeAppearance.Material3.SmallComponent">
+        <item name="cornerSize">10dp</item>
+    </style>
+    <style name="ShapeAppearance.Cashew.Medium" parent="ShapeAppearance.Material3.MediumComponent">
+        <item name="cornerSize">18dp</item>
+    </style>
+    <style name="ShapeAppearance.Cashew.Large" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerSize">24dp</item>
+    </style>
+
+    <!-- Section header inside grouped cards -->
+    <style name="TextAppearance.Cashew.SectionHeader" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textColor">@color/on_surface_muted</item>
+        <item name="android:letterSpacing">0.12</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+
+    <style name="TextAppearance.Cashew.SettingTitle" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+    <style name="TextAppearance.Cashew.SettingSubtitle" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textColor">@color/on_surface_muted</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:lineSpacingExtra">2dp</item>
+    </style>
+
+    <style name="TextAppearance.Cashew.StatValue" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">22sp</item>
+    </style>
+
+    <style name="TextAppearance.Cashew.StatLabel" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textColor">@color/on_surface_muted</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:letterSpacing">0.06</item>
+        <item name="android:textAllCaps">true</item>
     </style>
 
 </resources>
