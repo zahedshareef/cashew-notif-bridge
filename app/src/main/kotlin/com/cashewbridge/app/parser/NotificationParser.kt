@@ -21,24 +21,27 @@ object NotificationParser {
     // Each entry: (regex, currency code, confidence bonus)
     private data class CurrencyPattern(val regex: Regex, val currency: String, val bonus: Int)
 
+    // Capture group 1 is the amount, optionally prefixed with `-` so we can
+    // recognise reversals / refunds (#13). Case-insensitive flag replaces
+    // the previously-duplicated USD/usd, JPY/JPY variants (#12).
     private val CURRENCY_PATTERNS = listOf(
-        CurrencyPattern(Regex("""(?:USD|usd)\s*([\d,]+\.?\d*)"""), "USD", 3),
-        CurrencyPattern(Regex("""(?:INR|Rs\.?|₹)\s*([\d,]+\.?\d*)"""), "INR", 3),
-        CurrencyPattern(Regex("""(?:GBP|£)\s*([\d,]+\.?\d*)"""), "GBP", 3),
-        CurrencyPattern(Regex("""(?:EUR|€)\s*([\d,]+\.?\d*)"""), "EUR", 3),
-        CurrencyPattern(Regex("""\$\s*([\d,]+\.?\d*)"""), "USD", 3),
-        CurrencyPattern(Regex("""(?:AED)\s*([\d,]+\.?\d*)"""), "AED", 3),
-        CurrencyPattern(Regex("""(?:SGD)\s*([\d,]+\.?\d*)"""), "SGD", 3),
-        CurrencyPattern(Regex("""(?:AUD)\s*([\d,]+\.?\d*)"""), "AUD", 3),
-        CurrencyPattern(Regex("""(?:CAD)\s*([\d,]+\.?\d*)"""), "CAD", 3),
-        CurrencyPattern(Regex("""¥\s*([\d,]+\.?\d*)"""), "JPY", 3),
-        CurrencyPattern(Regex("""(?:JPY)\s*([\d,]+\.?\d*)"""), "JPY", 3),
-        CurrencyPattern(Regex("""([\d,]+\.?\d*)\s*(?:USD|usd)"""), "USD", 2),
-        CurrencyPattern(Regex("""(?i)amount[:\s]+(?:USD|Rs\.?|₹|€|£|\$)?\s*([\d,]+\.?\d*)"""), "USD", 2),
-        CurrencyPattern(Regex("""(?i)debited.*?([\d,]+\.\d{2})"""), "USD", 2),
-        CurrencyPattern(Regex("""(?i)credited.*?([\d,]+\.\d{2})"""), "USD", 2),
-        CurrencyPattern(Regex("""(?i)charged.*?([\d,]+\.\d{2})"""), "USD", 2),
-        CurrencyPattern(Regex("""(?i)payment.*?([\d,]+\.\d{2})"""), "USD", 1),
+        CurrencyPattern(Regex("""(?i)(?:USD|\$)\s*(-?[\d,]+\.?\d*)"""), "USD", 3),
+        CurrencyPattern(Regex("""(?i)(?:INR|Rs\.?|₹)\s*(-?[\d,]+\.?\d*)"""), "INR", 3),
+        CurrencyPattern(Regex("""(?i)(?:GBP|£)\s*(-?[\d,]+\.?\d*)"""), "GBP", 3),
+        CurrencyPattern(Regex("""(?i)(?:EUR|€)\s*(-?[\d,]+\.?\d*)"""), "EUR", 3),
+        CurrencyPattern(Regex("""(?i)(?:AED)\s*(-?[\d,]+\.?\d*)"""), "AED", 3),
+        CurrencyPattern(Regex("""(?i)(?:SGD)\s*(-?[\d,]+\.?\d*)"""), "SGD", 3),
+        CurrencyPattern(Regex("""(?i)(?:AUD)\s*(-?[\d,]+\.?\d*)"""), "AUD", 3),
+        CurrencyPattern(Regex("""(?i)(?:CAD)\s*(-?[\d,]+\.?\d*)"""), "CAD", 3),
+        CurrencyPattern(Regex("""(?i)(?:JPY|¥)\s*(-?[\d,]+\.?\d*)"""), "JPY", 3),
+        // Suffix forms ("100 USD")
+        CurrencyPattern(Regex("""(?i)(-?[\d,]+\.?\d*)\s*(?:USD|\$)"""), "USD", 2),
+        // Amount-keyword lead-in, any currency prefix (falls back to USD).
+        CurrencyPattern(Regex("""(?i)amount[:\s]+(?:USD|Rs\.?|₹|€|£|\$)?\s*(-?[\d,]+\.?\d*)"""), "USD", 2),
+        // Transaction-verb lead-in with cents precision. All three verbs share
+        // the same bonus / currency so one alternation is enough.
+        CurrencyPattern(Regex("""(?i)(?:debited|credited|charged).*?(-?[\d,]+\.\d{2})"""), "USD", 2),
+        CurrencyPattern(Regex("""(?i)payment.*?(-?[\d,]+\.\d{2})"""), "USD", 1),
     )
 
     private val INCOME_KEYWORDS = listOf(
@@ -102,9 +105,11 @@ object NotificationParser {
             }
             if (!conditionsPass) continue
 
-            val amount = extractWithRegex(rule.amountRegex, fullText) ?: continue
+            val signed = extractSignedAmount(rule.amountRegex, fullText) ?: continue
+            val amount = signed.absAmount
 
-            // #2 amount-range filter
+            // #2 amount-range filter (compare absolute value so a negative
+            // refund still matches a positive min/max bound).
             if (rule.minAmountFilter > 0 && amount < rule.minAmountFilter) continue
             if (rule.maxAmountFilter > 0 && amount > rule.maxAmountFilter) continue
 
@@ -113,7 +118,15 @@ object NotificationParser {
                 ?.takeIf { it.isNotBlank() }
                 ?.let { normalizeMerchant(it) }
                 ?.takeIf { it.isNotBlank() }
-            val isIncome = if (rule.autoDetectType) detectIncome(fullText) else rule.isIncome
+            // A negative sign on the captured amount (e.g. "-$25 refunded")
+            // flips the transaction to income — reversals / refunds read as
+            // money coming back in. Rule-authored isIncome still wins when the
+            // user has explicitly set autoDetectType = false.
+            val isIncome = when {
+                rule.autoDetectType -> detectIncome(fullText) || signed.wasNegative
+                signed.wasNegative -> true
+                else -> rule.isIncome
+            }
 
             // #3 — memo/note extraction (rule's noteRegex wins; else heuristic fallback)
             val note = extractNote(rule.noteRegex, fullText)
@@ -140,7 +153,8 @@ object NotificationParser {
         // ── #4 Confidence-scored heuristic parsing ────────────────────────────
         val bestMatch = scoredHeuristicParse(fullText) ?: return null to null
         val merchant = extractMerchantHeuristic(fullText)?.let { normalizeMerchant(it) }
-        val isIncome = detectIncome(fullText)
+        // Keyword-based income + negative-sign override (#13).
+        val isIncome = detectIncome(fullText) || bestMatch.wasNegative
         val note = extractNoteHeuristic(fullText)
 
         return ParsedTransaction(
@@ -159,7 +173,12 @@ object NotificationParser {
 
     // ── #4 Confidence scoring ─────────────────────────────────────────────────
 
-    private data class ScoredAmount(val amount: Double, val currency: String, val score: Int)
+    private data class ScoredAmount(
+        val amount: Double,
+        val currency: String,
+        val score: Int,
+        val wasNegative: Boolean
+    )
 
     private fun scoredHeuristicParse(text: String): ScoredAmount? {
         val lower = text.lowercase()
@@ -171,7 +190,9 @@ object NotificationParser {
         for (cp in CURRENCY_PATTERNS) {
             val match = cp.regex.find(text) ?: continue
             val raw = (match.groupValues.getOrNull(1) ?: match.value).replace(",", "").trim()
-            val amount = raw.toDoubleOrNull() ?: continue
+            val parsed = raw.toDoubleOrNull() ?: continue
+            val wasNegative = parsed < 0 || raw.startsWith("-")
+            val amount = kotlin.math.abs(parsed)
             if (amount <= 0) continue
 
             var score = cp.bonus * 10
@@ -179,7 +200,7 @@ object NotificationParser {
             if (amount == Math.floor(amount) && amount < 1_000_000) score += 5
             if ("." in raw && raw.substringAfter(".").length == 2) score += 5  // cents precision
             if (best == null || score > best.score) {
-                best = ScoredAmount(amount, cp.currency, score.coerceAtMost(100))
+                best = ScoredAmount(amount, cp.currency, score.coerceAtMost(100), wasNegative)
             }
         }
         return best
@@ -230,6 +251,23 @@ object NotificationParser {
         return try {
             Regex(pattern).find(text)?.groupValues?.getOrNull(1)
                 ?.replace(",", "")?.toDoubleOrNull()
+        } catch (e: Exception) { null }
+    }
+
+    /** Parsed amount plus whether the capture had a leading `-` sign (#13). */
+    private data class SignedAmount(val absAmount: Double, val wasNegative: Boolean)
+
+    private fun extractSignedAmount(pattern: String, text: String): SignedAmount? {
+        if (pattern.isBlank()) return null
+        return try {
+            val captured = Regex(pattern).find(text)?.groupValues?.getOrNull(1)
+                ?.replace(",", "")?.trim()
+                ?: return null
+            val parsed = captured.toDoubleOrNull() ?: return null
+            SignedAmount(
+                absAmount = kotlin.math.abs(parsed),
+                wasNegative = parsed < 0 || captured.startsWith("-")
+            )
         } catch (e: Exception) { null }
     }
 

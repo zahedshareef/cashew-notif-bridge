@@ -15,6 +15,7 @@
 
     <!-- Settings -->
     <string name="settings">Settings</string>
+    <string name="workflow_mutually_exclusive">Confirm and Batch modes can\'t both be on — turning the other off.</string>
     <string name="enable_service">Enable Bridge</string>
     <string name="enable_service_detail">Start/stop notification monitoring</string>
     <string name="hint_wallet_name">Wallet Name in Cashew (optional)</string>

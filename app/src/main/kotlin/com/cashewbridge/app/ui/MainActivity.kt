@@ -62,6 +62,19 @@ class MainActivity : AppCompatActivity() {
 
         binding.rowBatch.rowSwitch.setOnCheckedChangeListener { _, checked ->
             binding.layoutBatchWindow.visibility = if (checked) View.VISIBLE else View.GONE
+            // Confirm + Batch are mutually exclusive — batch wins silently in
+            // the listener service, so surface the conflict by turning off
+            // the other switch with a Snackbar when both get enabled.
+            if (checked && binding.rowConfirm.rowSwitch.isChecked) {
+                binding.rowConfirm.rowSwitch.isChecked = false
+                Snackbar.make(binding.root, R.string.workflow_mutually_exclusive, Snackbar.LENGTH_SHORT).show()
+            }
+        }
+        binding.rowConfirm.rowSwitch.setOnCheckedChangeListener { _, checked ->
+            if (checked && binding.rowBatch.rowSwitch.isChecked) {
+                binding.rowBatch.rowSwitch.isChecked = false
+                Snackbar.make(binding.root, R.string.workflow_mutually_exclusive, Snackbar.LENGTH_SHORT).show()
+            }
         }
         binding.rowReminder.rowSwitch.setOnCheckedChangeListener { _, checked ->
             binding.layoutReminderInterval.visibility = if (checked) View.VISIBLE else View.GONE

@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.TimeZone
 
 /**
  * BroadcastReceiver for the scheduled daily/weekly spending summary (#5).
@@ -33,12 +34,18 @@ class SummaryReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val isWeekly = prefs.summaryFrequency == 1
+                // "Today" / "This week" windows are interpreted in the device's
+                // current local timezone — when the user travels, the summary
+                // period shifts with them rather than staying anchored to the
+                // old TZ. Callers of setInexactRepeating below share this
+                // assumption (the alarm hour is local-time based).
+                val localTz = TimeZone.getDefault()
                 val windowStart = if (isWeekly) {
-                    // Last 7 days
+                    // Last 7 days (rolling — no TZ correction needed)
                     System.currentTimeMillis() - 7 * 24 * 3600_000L
                 } else {
-                    // Start of today
-                    Calendar.getInstance().apply {
+                    // Start of *today* in the local timezone
+                    Calendar.getInstance(localTz).apply {
                         set(Calendar.HOUR_OF_DAY, 0)
                         set(Calendar.MINUTE, 0)
                         set(Calendar.SECOND, 0)
@@ -94,7 +101,11 @@ class SummaryReceiver : BroadcastReceiver() {
             )
             val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-            val triggerAt = Calendar.getInstance().apply {
+            // summaryHour is a local-time wall-clock hour; anchor the alarm
+            // to the device's current TZ. setInexactRepeating's interval is
+            // wall-clock-agnostic so the alarm will still drift across DST
+            // transitions — that's acceptable for a daily summary.
+            val triggerAt = Calendar.getInstance(TimeZone.getDefault()).apply {
                 set(Calendar.HOUR_OF_DAY, prefs.summaryHour)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0)
