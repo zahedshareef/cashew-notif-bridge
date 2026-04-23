@@ -56,16 +56,22 @@ class SummaryReceiver : BroadcastReceiver() {
                 val title = "$period: $count transactions · $$amountStr spent"
                 val body = topMerchant?.let { "Top merchant: $it" } ?: "Open Cashew Bridge for details"
 
-                NotificationCompat.Builder(context, NotificationHelper.CHANNEL_SUMMARY)
+                if (!NotificationHelper.canPostNotifications(context)) {
+                    Log.w(TAG, "Skipping summary: POST_NOTIFICATIONS not granted")
+                    return@launch
+                }
+                val n = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_SUMMARY)
                     .setSmallIcon(R.drawable.ic_status_active)
                     .setContentTitle(title)
                     .setContentText(body)
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setAutoCancel(true)
                     .build()
-                    .also { n ->
-                        NotificationManagerCompat.from(context).notify(NOTIF_ID_SUMMARY, n)
-                    }
+                try {
+                    NotificationManagerCompat.from(context).notify(NOTIF_ID_SUMMARY, n)
+                } catch (se: SecurityException) {
+                    Log.w(TAG, "Summary notify denied", se)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Summary generation failed", e)
             } finally {

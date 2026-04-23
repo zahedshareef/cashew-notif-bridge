@@ -1,17 +1,54 @@
 package com.cashewbridge.app.service
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.RingtoneManager
+import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.cashewbridge.app.R
 
 object NotificationHelper {
+
+    private const val TAG = "NotificationHelper"
+
+    /**
+     * Android 13+ requires runtime POST_NOTIFICATIONS permission. On older
+     * versions the permission is granted at install time so this always returns
+     * true. Callers must funnel every [NotificationManager.notify] through
+     * [safeNotify] to avoid a silent SecurityException / crash.
+     */
+    fun canPostNotifications(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
+        return ContextCompat.checkSelfPermission(
+            context, Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun safeNotify(
+        context: Context,
+        manager: NotificationManager,
+        id: Int,
+        notification: Notification
+    ) {
+        if (!canPostNotifications(context)) {
+            Log.w(TAG, "Skipping notify(id=$id): POST_NOTIFICATIONS not granted")
+            return
+        }
+        try {
+            manager.notify(id, notification)
+        } catch (se: SecurityException) {
+            Log.w(TAG, "notify(id=$id) denied by system", se)
+        }
+    }
 
     const val CHANNEL_CONFIRM = "cashew_bridge_confirm"
     const val CHANNEL_ALARM = "cashew_bridge_alarm"
@@ -119,7 +156,7 @@ object NotificationHelper {
             .addAction(0, "Skip", skipPending)
             .build()
 
-        manager.notify(notifId, notif)
+        safeNotify(context, manager, notifId, notif)
     }
 
     /**
@@ -147,7 +184,7 @@ object NotificationHelper {
             .setAutoCancel(true)
             .build()
 
-        manager.notify(notifId, notif)
+        safeNotify(context, manager, notifId, notif)
     }
 
     /**
@@ -188,7 +225,7 @@ object NotificationHelper {
             .addAction(0, "Undo", undoPending)
             .build()
 
-        manager.notify(notifId, notif)
+        safeNotify(context, manager, notifId, notif)
     }
 
     /**
@@ -206,7 +243,7 @@ object NotificationHelper {
             .setAutoCancel(true)
             .build()
 
-        manager.notify(ID_REMINDER, notif)
+        safeNotify(context, manager, ID_REMINDER, notif)
     }
 
     /**
@@ -233,7 +270,7 @@ object NotificationHelper {
             .setAutoCancel(true)
             .build()
 
-        manager.notify(ID_BATCH_READY, notif)
+        safeNotify(context, manager, ID_BATCH_READY, notif)
     }
 
     private fun pendingBroadcast(context: Context, requestCode: Int, intent: Intent): PendingIntent =
