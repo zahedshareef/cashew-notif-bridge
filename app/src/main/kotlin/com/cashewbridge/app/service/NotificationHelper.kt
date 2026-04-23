@@ -56,6 +56,7 @@ object NotificationHelper {
     const val CHANNEL_REMINDER = "cashew_bridge_reminder"
     const val CHANNEL_BATCH = "cashew_bridge_batch"
     const val CHANNEL_SUMMARY = "cashew_bridge_summary"    // #5 daily/weekly summary
+    const val CHANNEL_INTEGRATION = "cashew_bridge_integration"  // missing Cashew, DB errors
 
     const val ACTION_CONFIRM_SEND = "com.cashewbridge.app.ACTION_CONFIRM_SEND"
     const val ACTION_CONFIRM_SKIP = "com.cashewbridge.app.ACTION_CONFIRM_SKIP"
@@ -117,6 +118,34 @@ object NotificationHelper {
                 description = "Daily or weekly spending summary notifications"
             }
         )
+        manager.createNotificationChannel(
+            NotificationChannel(CHANNEL_INTEGRATION, "Integration Errors",
+                NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "Problems talking to Cashew or loading your rules"
+            }
+        )
+    }
+
+    /**
+     * Post a persistent warning when the Cashew app is not installed, so the
+     * user understands why transactions are no longer being forwarded.
+     */
+    fun postIntegrationWarning(
+        context: Context,
+        notifId: Int,
+        title: String,
+        body: String
+    ) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notif = NotificationCompat.Builder(context, CHANNEL_INTEGRATION)
+            .setSmallIcon(R.drawable.ic_status_error)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .build()
+        safeNotify(context, manager, notifId, notif)
     }
 
     /**
@@ -281,4 +310,6 @@ object NotificationHelper {
 
     const val ID_REMINDER = 9001
     const val ID_BATCH_READY = 9002
+    const val ID_CASHEW_MISSING = 9003
+    const val ID_RULES_LOAD_FAILED = 9004
 }

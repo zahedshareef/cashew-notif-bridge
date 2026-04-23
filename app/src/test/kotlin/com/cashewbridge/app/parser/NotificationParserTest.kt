@@ -128,7 +128,32 @@ class NotificationParserTest {
         assertEquals(1L, matched!!.id)
         assertEquals(42.0, tx!!.amount, 0.001)
         assertEquals(100, tx.confidence)
+        // Rule-based alphabetic merchant capture previously returned null
+        // because the extractor coerced the captured string to Double. Ensure
+        // the fix produces the normalized merchant name.
         assertEquals("Whole Foods", tx.merchant)
+    }
+
+    @Test fun rule_merchant_extraction_handles_lowercase_single_word() {
+        val r = rule(pkg = "com.sbux",
+            amountRegex = """\$(\d+\.?\d*)""",
+            merchantRegex = """at (\w+)""")
+        val (tx, _) = NotificationParser.parse(
+            "com.sbux", "", "Paid \$5 at starbucks", enabledRules = listOf(r)
+        )
+        assertEquals("Starbucks", tx!!.merchant)
+    }
+
+    @Test fun rule_blank_merchant_capture_falls_back_to_category() {
+        val r = rule(pkg = "com.x",
+            amountRegex = """(\d+)""",
+            merchantRegex = """(\s*)""",
+            defaultCategory = "Shopping")
+        val (tx, _) = NotificationParser.parse(
+            "com.x", "", "Paid 10", enabledRules = listOf(r)
+        )
+        // Blank merchant is suppressed; defaultCategory fallback kicks in.
+        assertEquals("Shopping", tx!!.merchant)
     }
 
     @Test fun higher_priority_rule_wins() {

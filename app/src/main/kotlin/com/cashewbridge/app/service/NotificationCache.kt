@@ -1,10 +1,13 @@
 package com.cashewbridge.app.service
 
 import android.content.Context
+import android.util.Log
 import com.cashewbridge.app.model.AppDatabase
 import com.cashewbridge.app.model.CachedNotification
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,13 +21,21 @@ import kotlinx.coroutines.launch
  */
 object NotificationCache {
 
+    private const val TAG = "NotificationCache"
+
     const val MAX_SIZE = 100
     private const val MAX_PERSISTED = 100
 
     private val _notifications = MutableStateFlow<List<CachedNotification>>(emptyList())
     val notifications: StateFlow<List<CachedNotification>> = _notifications.asStateFlow()
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    // SupervisorJob so a single DB failure (e.g. transient SQLite disk I/O error)
+    // cannot cancel the shared scope and silently no-op every subsequent launch.
+    // The handler logs failures instead of letting them vanish.
+    private val errorHandler = CoroutineExceptionHandler { _, t ->
+        Log.e(TAG, "Background DB task failed", t)
+    }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + errorHandler)
 
     /** Call once on app start / service start to restore persisted notifications. */
     fun restoreFromDb(context: Context) {
