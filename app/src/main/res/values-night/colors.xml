@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Brand (slightly brighter on dark backgrounds) -->
+    <color name="brand_green">#1FBF82</color>
+    <color name="brand_green_dark">#00A86B</color>
+    <color name="brand_green_light">#2FD295</color>
+    <color name="brand_green_tint">#152822</color>
+
+    <color name="green_600">#1FBF82</color>
+    <color name="green_800">#00A86B</color>
+
+    <!-- Semantic -->
+    <color name="status_active">#1FBF82</color>
+    <color name="status_error">#FF6369</color>
+    <color name="status_paused">#FFB74D</color>
+    <color name="status_info">#6AA1FF</color>
+
+    <color name="status_active_bg">#152822</color>
+    <color name="status_error_bg">#2A1618</color>
+    <color name="status_paused_bg">#2A2015</color>
+    <color name="status_info_bg">#151D2C</color>
+
+    <!-- Surfaces (dark) -->
+    <color name="app_background">#0B0F14</color>
+    <color name="surface">#151A21</color>
+    <color name="surface_variant">#1E242C</color>
+    <color name="surface_container">#11161C</color>
+    <color name="outline">#2A323C</color>
+    <color name="outline_soft">#1F262E</color>
+    <color name="on_surface">#F1F4F8</color>
+    <color name="on_surface_muted">#9AA4B0</color>
+    <color name="on_surface_subtle">#6B7380</color>
+
+    <!-- Chip backgrounds -->
+    <color name="chip_income_bg">#152822</color>
+    <color name="chip_expense_bg">#2A1618</color>
+    <color name="chip_neutral_bg">#1E242C</color>
+    <color name="chip_neutral_text">#9AA4B0</color>
+
+    <!-- Nav tile accents -->
+    <color name="tile_insights">#6AA1FF</color>
+    <color name="tile_insights_bg">#151D2C</color>
+    <color name="tile_blocklist">#FF6369</color>
+    <color name="tile_blocklist_bg">#2A1618</color>
+    <color name="tile_notifications">#1FBF82</color>
+    <color name="tile_notifications_bg">#152822</color>
+    <color name="tile_rules">#A78BFA</color>
+    <color name="tile_rules_bg">#1F1A2D</color>
+    <color name="tile_logs">#FFB74D</color>
+    <color name="tile_logs_bg">#2A2015</color>
+
+</resources>
