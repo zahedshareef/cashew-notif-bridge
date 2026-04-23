@@ -1,5 +1,6 @@
 package com.cashewbridge.app.parser
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import com.cashewbridge.app.model.ParsedTransaction
@@ -61,5 +62,18 @@ object CashewLinkBuilder {
                 }
             }
             .build()
+    }
+
+    /**
+     * Returns true when an installed app declares a handler for the
+     * `cashewapp://addTransaction` deep link. Used by the listener service to
+     * detect silently-failing auto-forwards when Cashew is not installed.
+     */
+    fun isCashewInstalled(context: Context): Boolean {
+        val probe = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("cashewapp://addTransaction")
+        )
+        return probe.resolveActivity(context.packageManager) != null
     }
 }

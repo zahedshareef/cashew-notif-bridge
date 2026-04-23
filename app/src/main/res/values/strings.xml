@@ -131,6 +131,12 @@
     <string name="test_no_match">No match</string>
     <string name="error_invalid_regex">Invalid regex: %s</string>
 
+    <!-- Integration errors surfaced by the listener service -->
+    <string name="err_cashew_missing_title">Cashew app not found</string>
+    <string name="err_cashew_missing_body">Transactions can\'t be forwarded — install Cashew from the Play Store, then open Cashew Bridge again.</string>
+    <string name="err_rules_load_failed_title">Could not load your rules</string>
+    <string name="err_rules_load_failed_body">Cashew Bridge ran into a database error. Falling back to built-in heuristics. Restart the app; if this keeps happening, export your rules and reinstall.</string>
+
     <!-- Logs -->
     <string name="no_logs">No activity logged yet</string>
     <string name="clear_logs">Clear All Logs</string>

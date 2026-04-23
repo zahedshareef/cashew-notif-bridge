@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.annotation.MainThread
+import com.cashewbridge.app.R
 import com.cashewbridge.app.model.AppDatabase
 import com.cashewbridge.app.model.BatchedTransaction
 import com.cashewbridge.app.model.CachedNotification
@@ -17,6 +18,7 @@ import com.cashewbridge.app.parser.CashewLinkBuilder
 import com.cashewbridge.app.parser.NotificationParser
 import com.cashewbridge.app.prefs.AppPreferences
 import kotlinx.coroutines.*
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 class NotificationListenerService : android.service.notification.NotificationListenerService() {
@@ -37,6 +39,10 @@ class NotificationListenerService : android.service.notification.NotificationLis
     private val confirmIdCounter = AtomicInteger(1000)
     private val undoIdCounter = AtomicInteger(2000)
     private val alarmIdCounter = AtomicInteger(3000)
+
+    // Fire-once flags so persistent integration problems don't spam the tray.
+    private val rulesLoadFailureReported = AtomicBoolean(false)
+    private val cashewMissingReported = AtomicBoolean(false)
 
     override fun onCreate() {
         super.onCreate()
@@ -87,7 +93,22 @@ class NotificationListenerService : android.service.notification.NotificationLis
             val cacheKey = "${packageName}_${sbn.id}_${sbn.tag ?: "notag"}"
             val rules: List<NotificationRule> = try {
                 db.ruleDao().getEnabledRules()
-            } catch (e: Exception) { emptyList() }
+            } catch (e: Exception) {
+                // Previously this swallowed the exception and returned an empty
+                // list, so a corrupted DB silently disabled every user rule
+                // with zero feedback. Log loudly and, once per service
+                // lifetime, tell the user what happened.
+                Log.e(TAG, "Rule DAO failed — falling back to heuristics only", e)
+                if (rulesLoadFailureReported.compareAndSet(false, true)) {
+                    NotificationHelper.postIntegrationWarning(
+                        applicationContext,
+                        NotificationHelper.ID_RULES_LOAD_FAILED,
+                        applicationContext.getString(R.string.err_rules_load_failed_title),
+                        applicationContext.getString(R.string.err_rules_load_failed_body)
+                    )
+                }
+                emptyList()
+            }
 
             // Pass senderText into parse() for #8
             val (transaction, matchedRule) = NotificationParser.parse(
@@ -234,6 +255,24 @@ class NotificationListenerService : android.service.notification.NotificationLis
 
                 // ── Auto-forward ──────────────────────────────────────────────
                 else -> {
+                    // Proactively detect a missing Cashew install so the user
+                    // gets a real explanation the first time, instead of just
+                    // seeing notifications quietly stop flowing through.
+                    if (!CashewLinkBuilder.isCashewInstalled(applicationContext)) {
+                        if (cashewMissingReported.compareAndSet(false, true)) {
+                            NotificationHelper.postIntegrationWarning(
+                                applicationContext,
+                                NotificationHelper.ID_CASHEW_MISSING,
+                                applicationContext.getString(R.string.err_cashew_missing_title),
+                                applicationContext.getString(R.string.err_cashew_missing_body)
+                            )
+                        }
+                        logEvent(packageName, title, body, transaction.amount, transaction.merchant,
+                            transaction.category, transaction.isIncome, "FAILED: cashew_not_installed",
+                            matchedRule?.name ?: "heuristic", transaction.currency)
+                        return@launch
+                    }
+
                     val intent = CashewLinkBuilder.buildIntent(transaction, walletName)
                     try {
                         applicationContext.startActivity(intent)
@@ -297,8 +336,7 @@ class NotificationListenerService : android.service.notification.NotificationLis
             applicationContext, BATCH_ALARM_REQUEST,
             intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val am = applicationContext.getSystemService(ALARM_SERVICE) as AlarmManager
-        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+        setExactOrFallback(triggerAt, pi)
     }
 
     // ── Undo countdown alarm ──────────────────────────────────────────────────
@@ -316,8 +354,23 @@ class NotificationListenerService : android.service.notification.NotificationLis
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        setExactOrFallback(triggerAt, pi)
+    }
+
+    /**
+     * Android 12+ can revoke SCHEDULE_EXACT_ALARM at any time, and
+     * [AlarmManager.setExactAndAllowWhileIdle] throws [SecurityException] when
+     * that happens. Fall back to the inexact variant so batches / undo windows
+     * still fire (a little later) instead of the entire flow going dark.
+     */
+    private fun setExactOrFallback(triggerAt: Long, pi: PendingIntent) {
         val am = applicationContext.getSystemService(ALARM_SERVICE) as AlarmManager
-        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+        try {
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+        } catch (se: SecurityException) {
+            Log.w(TAG, "Exact alarm denied; falling back to inexact", se)
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

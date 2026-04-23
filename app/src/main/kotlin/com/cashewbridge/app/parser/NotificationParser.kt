@@ -108,8 +108,11 @@ object NotificationParser {
             if (rule.minAmountFilter > 0 && amount < rule.minAmountFilter) continue
             if (rule.maxAmountFilter > 0 && amount > rule.maxAmountFilter) continue
 
-            val rawMerchant = extractWithRegex(rule.merchantRegex, fullText)?.toString()
-            val merchant = rawMerchant?.let { normalizeMerchant(it) }
+            val rawMerchant = extractStringWithRegex(rule.merchantRegex, fullText)
+            val merchant = rawMerchant
+                ?.takeIf { it.isNotBlank() }
+                ?.let { normalizeMerchant(it) }
+                ?.takeIf { it.isNotBlank() }
             val isIncome = if (rule.autoDetectType) detectIncome(fullText) else rule.isIncome
 
             // #3 — memo/note extraction (rule's noteRegex wins; else heuristic fallback)
@@ -227,6 +230,19 @@ object NotificationParser {
         return try {
             Regex(pattern).find(text)?.groupValues?.getOrNull(1)
                 ?.replace(",", "")?.toDoubleOrNull()
+        } catch (e: Exception) { null }
+    }
+
+    /**
+     * String-valued counterpart used for merchant / sub-text extraction. The
+     * amount-oriented [extractWithRegex] above coerces to [Double] which made
+     * rule-based merchant capture silently return null for any alphabetic
+     * merchant name.
+     */
+    private fun extractStringWithRegex(pattern: String, text: String): String? {
+        if (pattern.isBlank()) return null
+        return try {
+            Regex(pattern).find(text)?.groupValues?.getOrNull(1)?.trim()
         } catch (e: Exception) { null }
     }
 
