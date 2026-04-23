@@ -1,5 +1,6 @@
 package com.cashewbridge.app.ui
 
+import android.app.AlertDialog
 import android.app.Dialog
 import android.os.Bundle
 import android.view.View
@@ -11,8 +12,10 @@ import com.cashewbridge.app.model.AppDatabase
 import com.cashewbridge.app.model.NotificationRule
 import com.cashewbridge.app.parser.NotificationParser
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.regex.PatternSyntaxException
 
 class RuleEditDialogFragment : DialogFragment() {
 
@@ -37,12 +40,20 @@ class RuleEditDialogFragment : DialogFragment() {
             else -> R.string.add_rule
         }
 
-        return MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(title)
             .setView(binding.root)
-            .setPositiveButton(R.string.save) { _, _ -> saveRule() }
+            .setPositiveButton(R.string.save, null)
             .setNegativeButton(android.R.string.cancel, null)
             .create()
+
+        // Override positive button so validation can keep the dialog open.
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                if (saveRule()) dialog.dismiss()
+            }
+        }
+        return dialog
     }
 
     override fun onDestroyView() {
@@ -157,12 +168,25 @@ class RuleEditDialogFragment : DialogFragment() {
         return mask
     }
 
-    private fun saveRule() {
+    /** Returns true if the rule was accepted and saved; false if validation failed. */
+    private fun saveRule(): Boolean {
         val name = binding.etRuleName.text.toString().trim()
         if (name.isBlank()) {
             binding.etRuleName.error = getString(R.string.required)
-            return
+            return false
         }
+
+        val amountRegex = binding.etAmountRegex.text.toString().trim()
+        val merchantRegex = binding.etMerchantRegex.text.toString().trim()
+        val noteRegex = binding.etNoteRegex.text.toString().trim()
+
+        // Compile each user-supplied regex up-front so malformed patterns are
+        // caught here rather than silently swallowed inside the parser at
+        // runtime (where they would disable the rule without telling the user).
+        if (!validateRegex(binding.etAmountRegex, amountRegex)) return false
+        if (!validateRegex(binding.etMerchantRegex, merchantRegex)) return false
+        if (!validateRegex(binding.etNoteRegex, noteRegex)) return false
+
         val conditionLogic = if (binding.toggleConditionLogic.checkedButtonId == R.id.btn_logic_or) 1 else 0
         val cooldown = binding.etCooldownMinutes.text.toString().toIntOrNull()?.coerceAtLeast(0) ?: 0
         val startHour = binding.etStartHour.text.toString().toIntOrNull() ?: -1
@@ -174,8 +198,8 @@ class RuleEditDialogFragment : DialogFragment() {
             packageName = binding.etPackageName.text.toString().trim(),
             titleContains = binding.etTitleContains.text.toString().trim(),
             bodyContains = binding.etBodyContains.text.toString().trim(),
-            amountRegex = binding.etAmountRegex.text.toString().trim(),
-            merchantRegex = binding.etMerchantRegex.text.toString().trim(),
+            amountRegex = amountRegex,
+            merchantRegex = merchantRegex,
             defaultCategory = binding.etDefaultCategory.text.toString().trim(),
             defaultWalletName = binding.etWalletName.text.toString().trim(),
             isIncome = binding.switchIsIncome.isChecked,
@@ -191,12 +215,30 @@ class RuleEditDialogFragment : DialogFragment() {
             senderContains = binding.etSenderContains.text.toString().trim(),
             minAmountFilter = binding.etMinAmountFilter.text.toString().toDoubleOrNull() ?: 0.0,
             maxAmountFilter = binding.etMaxAmountFilter.text.toString().toDoubleOrNull() ?: 0.0,
-            noteRegex = binding.etNoteRegex.text.toString().trim(),
+            noteRegex = noteRegex,
             currencyOverride = binding.etCurrencyOverride.text.toString().trim().uppercase()
         )
 
         val db = AppDatabase.getInstance(requireContext())
         lifecycleScope.launch(Dispatchers.IO) { db.ruleDao().insertRule(rule) }
+        return true
+    }
+
+    private fun validateRegex(field: TextInputEditText, pattern: String): Boolean {
+        if (pattern.isBlank()) return true
+        return try {
+            Regex(pattern)
+            field.error = null
+            true
+        } catch (e: PatternSyntaxException) {
+            field.error = getString(R.string.error_invalid_regex, e.description ?: e.message ?: "")
+            field.requestFocus()
+            false
+        } catch (e: Exception) {
+            field.error = getString(R.string.error_invalid_regex, e.message ?: "")
+            field.requestFocus()
+            false
+        }
     }
 
     companion object {
