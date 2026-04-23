@@ -103,7 +103,14 @@
     <string name="section_explore">More</string>
 
     <!-- Nav tile subtitles -->
-    <string name="nav_insights_sub">Spending trends &amp; totals</string>
+    <string name="nav_insights_sub">Totals of what the bridge forwarded</string>
+
+    <!-- Insights screen -->
+    <string name="insights_forwarded_out">Forwarded out (30d)</string>
+    <string name="insights_forwarded_in">Forwarded in (30d)</string>
+    <string name="insights_none_yet">—</string>
+    <string name="insights_top_categories">Top forwarded categories (30d)</string>
+    <string name="insights_disclaimer">These totals only cover transactions this bridge forwarded to Cashew. Open Cashew for your real budget and balances.</string>
     <string name="nav_blocklist_sub">Mute apps you don’t want parsed</string>
     <string name="nav_notifications_sub">Recent alerts captured</string>
     <string name="nav_rules_sub">Custom parsers per app</string>

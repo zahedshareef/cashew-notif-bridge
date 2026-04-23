@@ -46,35 +46,6 @@ interface LogDao {
     """)
     suspend fun getDailyExpenses(since: Long): List<DayTotal>
 
-    /** Sum of forwarded income per calendar-day label. */
-    @Query("""
-        SELECT strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch') AS day,
-               SUM(parsedAmount) AS total
-        FROM logs
-        WHERE timestamp >= :since
-          AND actionTaken IN ('LAUNCHED', 'BATCHED')
-          AND parsedAmount IS NOT NULL
-          AND isIncome = 1
-        GROUP BY day
-        ORDER BY day ASC
-    """)
-    suspend fun getDailyIncome(since: Long): List<DayTotal>
-
-    /** Category breakdown for the insights screen. */
-    @Query("""
-        SELECT COALESCE(parsedCategory, '(uncategorised)') AS day,
-               SUM(parsedAmount) AS total
-        FROM logs
-        WHERE timestamp >= :since
-          AND actionTaken IN ('LAUNCHED', 'BATCHED')
-          AND parsedAmount IS NOT NULL
-          AND isIncome = 0
-        GROUP BY parsedCategory
-        ORDER BY total DESC
-        LIMIT 10
-    """)
-    suspend fun getCategoryBreakdown(since: Long): List<DayTotal>
-
     /** Total forwarded expenses for daily/weekly summary notification (#5). */
     @Query("""
         SELECT SUM(parsedAmount)
@@ -107,7 +78,57 @@ interface LogDao {
         LIMIT 1
     """)
     suspend fun getTopMerchantSince(since: Long): List<DayTotal>
+
+    // ── Per-currency insights (multi-currency correctness) ─────────────────────
+
+    /** Forwarded expense totals grouped by currency. */
+    @Query("""
+        SELECT currency, SUM(parsedAmount) AS total
+        FROM logs
+        WHERE timestamp >= :since
+          AND actionTaken IN ('LAUNCHED', 'BATCHED')
+          AND parsedAmount IS NOT NULL
+          AND isIncome = 0
+        GROUP BY currency
+        ORDER BY total DESC
+    """)
+    suspend fun getExpenseTotalsByCurrency(since: Long): List<CurrencyTotal>
+
+    /** Forwarded income totals grouped by currency. */
+    @Query("""
+        SELECT currency, SUM(parsedAmount) AS total
+        FROM logs
+        WHERE timestamp >= :since
+          AND actionTaken IN ('LAUNCHED', 'BATCHED')
+          AND parsedAmount IS NOT NULL
+          AND isIncome = 1
+        GROUP BY currency
+        ORDER BY total DESC
+    """)
+    suspend fun getIncomeTotalsByCurrency(since: Long): List<CurrencyTotal>
+
+    /** Category breakdown that preserves the currency of each row. */
+    @Query("""
+        SELECT COALESCE(parsedCategory, '(uncategorised)') AS category,
+               currency,
+               SUM(parsedAmount) AS total
+        FROM logs
+        WHERE timestamp >= :since
+          AND actionTaken IN ('LAUNCHED', 'BATCHED')
+          AND parsedAmount IS NOT NULL
+          AND isIncome = 0
+        GROUP BY parsedCategory, currency
+        ORDER BY total DESC
+        LIMIT 10
+    """)
+    suspend fun getCategoryBreakdownByCurrency(since: Long): List<CategoryCurrencyTotal>
 }
 
 /** Reusable projection for day/label + amount pairs. */
 data class DayTotal(val day: String, val total: Double)
+
+/** Sum of forwarded amounts for a single ISO-4217 currency code. */
+data class CurrencyTotal(val currency: String, val total: Double)
+
+/** Sum of forwarded amounts for a (category, currency) pair. */
+data class CategoryCurrencyTotal(val category: String, val currency: String, val total: Double)
