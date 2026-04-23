@@ -18,14 +18,17 @@ import androidx.recyclerview.widget.RecyclerView
 import com.cashewbridge.app.R
 import com.cashewbridge.app.databinding.ActivityInsightsBinding
 import com.cashewbridge.app.model.AppDatabase
+import com.cashewbridge.app.model.CategoryCurrencyTotal
+import com.cashewbridge.app.model.CurrencyTotal
 import com.cashewbridge.app.model.DayTotal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * #6 — Insights screen with a Canvas-drawn spending bar chart (past 30 days)
- * and a category breakdown list.
+ * Insights screen — totals of transactions the bridge forwarded in the last 30 days.
+ * Totals are split by ISO-4217 currency since the bridge supports 9 currencies
+ * (USD, INR, GBP, EUR, AED, SGD, AUD, CAD, JPY) and summing across them would lie.
  */
 class InsightsActivity : AppCompatActivity() {
 
@@ -51,22 +54,59 @@ class InsightsActivity : AppCompatActivity() {
     private fun loadInsights() {
         lifecycleScope.launch {
             val since30d = System.currentTimeMillis() - 30L * 24 * 3600_000
-            val dailyExpenses = withContext(Dispatchers.IO) { db.logDao().getDailyExpenses(since30d) }
-            val categories = withContext(Dispatchers.IO) { db.logDao().getCategoryBreakdown(since30d) }
-            val totalExpense = dailyExpenses.sumOf { it.total }
-            val totalIncome = withContext(Dispatchers.IO) {
-                db.logDao().getDailyIncome(since30d).sumOf { it.total }
+
+            val snapshot = withContext(Dispatchers.IO) {
+                val dao = db.logDao()
+                InsightsSnapshot(
+                    dailyExpenses = dao.getDailyExpenses(since30d),
+                    expenseTotals = dao.getExpenseTotalsByCurrency(since30d),
+                    incomeTotals = dao.getIncomeTotalsByCurrency(since30d),
+                    categories = dao.getCategoryBreakdownByCurrency(since30d)
+                )
             }
 
-            binding.tvTotalExpense.text = "Expenses: $${"%.2f".format(totalExpense)} (30d)"
-            binding.tvTotalIncome.text  = "Income: $${"%.2f".format(totalIncome)} (30d)"
+            binding.tvTotalExpense.text = formatTotals(snapshot.expenseTotals)
+            binding.tvTotalIncome.text = formatTotals(snapshot.incomeTotals)
 
-            binding.barChart.setData(dailyExpenses)
+            binding.barChart.setData(snapshot.dailyExpenses)
 
-            val adapter = CategoryAdapter(categories)
             binding.rvCategories.layoutManager = LinearLayoutManager(this@InsightsActivity)
-            binding.rvCategories.adapter = adapter
+            binding.rvCategories.adapter = CategoryAdapter(snapshot.categories)
         }
+    }
+
+    private data class InsightsSnapshot(
+        val dailyExpenses: List<DayTotal>,
+        val expenseTotals: List<CurrencyTotal>,
+        val incomeTotals: List<CurrencyTotal>,
+        val categories: List<CategoryCurrencyTotal>
+    )
+
+    private fun formatTotals(totals: List<CurrencyTotal>): String {
+        if (totals.isEmpty()) return getString(R.string.insights_none_yet)
+        return totals.joinToString(" · ") { CurrencyFormatter.format(it.total, it.currency) }
+    }
+}
+
+// ── ISO-4217 currency formatter ───────────────────────────────────────────────
+
+object CurrencyFormatter {
+    fun symbol(currency: String): String = when (currency) {
+        "USD", "AUD", "CAD", "SGD" -> "$"
+        "GBP" -> "£"
+        "EUR" -> "€"
+        "INR" -> "₹"
+        "JPY" -> "¥"
+        "AED" -> "AED "
+        else -> "$currency "
+    }
+
+    fun format(amount: Double, currency: String): String {
+        val symbol = symbol(currency)
+        return if (amount == amount.toLong().toDouble())
+            "$symbol${amount.toLong()}"
+        else
+            "$symbol${"%.2f".format(amount)}"
     }
 }
 
@@ -120,20 +160,18 @@ class SpendingBarChart @JvmOverloads constructor(
             val bottom = padT + chartH
             barPaint.alpha = 200
             canvas.drawRoundRect(RectF(left, top, right, bottom), 4f, 4f, barPaint)
-            // Day label (show every 5th)
             if (i % 5 == 0 && day.day.length >= 10) {
-                val label = day.day.substring(8) // DD portion
+                val label = day.day.substring(8)
                 canvas.drawText(label, left + barW / 2, bottom + 26f, textPaint)
             }
         }
-        // Baseline
         canvas.drawLine(padL, padT + chartH, width - padR, padT + chartH, linePaint)
     }
 }
 
 // ── Category breakdown adapter ────────────────────────────────────────────────
 
-class CategoryAdapter(private val items: List<DayTotal>) :
+class CategoryAdapter(private val items: List<CategoryCurrencyTotal>) :
     RecyclerView.Adapter<CategoryAdapter.VH>() {
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
@@ -149,14 +187,14 @@ class CategoryAdapter(private val items: List<DayTotal>) :
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = items[position]
-        val max = items.maxOf { it.total }.takeIf { it > 0 } ?: 1.0
-        holder.label.text = item.day
-        holder.amount.text = "$${"%.2f".format(item.total)}"
-        val fraction = (item.total / max).toFloat()
-        holder.bar.layoutParams = (holder.bar.layoutParams as ViewGroup.MarginLayoutParams).also {
-            // Scale the bar using post-layout scaleX
-        }
-        holder.bar.scaleX = fraction
+        // Bar length is relative within the same currency — comparing amounts
+        // across currencies visually is misleading.
+        val max = items.filter { it.currency == item.currency }
+            .maxOf { it.total }
+            .takeIf { it > 0 } ?: 1.0
+        holder.label.text = item.category
+        holder.amount.text = CurrencyFormatter.format(item.total, item.currency)
+        holder.bar.scaleX = (item.total / max).toFloat()
         holder.bar.pivotX = 0f
     }
 }
