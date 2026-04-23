@@ -6,6 +6,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.widget.RemoteViews
 import com.cashewbridge.app.R
 import com.cashewbridge.app.model.AppDatabase
@@ -45,11 +47,27 @@ class BridgeWidget : AppWidgetProvider() {
     companion object {
         const val ACTION_TOGGLE = "com.cashewbridge.app.WIDGET_TOGGLE"
 
+        // Debouncing: the listener service fires requestUpdate() once per
+        // successful forward, which can be many times per second in batch
+        // flows. Coalesce repeated requests inside a short window onto a
+        // single widget refresh to avoid flooding the system with
+        // APPWIDGET_UPDATE broadcasts.
+        private const val UPDATE_DEBOUNCE_MS = 500L
+        private val debounceHandler = Handler(Looper.getMainLooper())
+        private var pendingUpdate: Runnable? = null
+
         fun requestUpdate(context: Context) {
-            val mgr = AppWidgetManager.getInstance(context)
-            val ids = mgr.getAppWidgetIds(ComponentName(context, BridgeWidget::class.java))
-            if (ids.isEmpty()) return
-            for (id in ids) updateWidget(context, mgr, id)
+            val appContext = context.applicationContext
+            pendingUpdate?.let { debounceHandler.removeCallbacks(it) }
+            val runnable = Runnable {
+                pendingUpdate = null
+                val mgr = AppWidgetManager.getInstance(appContext)
+                val ids = mgr.getAppWidgetIds(ComponentName(appContext, BridgeWidget::class.java))
+                if (ids.isEmpty()) return@Runnable
+                for (id in ids) updateWidget(appContext, mgr, id)
+            }
+            pendingUpdate = runnable
+            debounceHandler.postDelayed(runnable, UPDATE_DEBOUNCE_MS)
         }
 
         private fun updateWidget(context: Context, mgr: AppWidgetManager, widgetId: Int) {

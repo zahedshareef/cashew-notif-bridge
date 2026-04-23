@@ -273,6 +273,71 @@ class NotificationParserTest {
         assertEquals("Z999", tx?.note)
     }
 
+    // ── Negative amounts (#13) ───────────────────────────────────────────────
+
+    @Test fun heuristic_negative_amount_flips_to_income() {
+        // "-$100 reversed" has no income keyword but has a minus sign — should
+        // be treated as money coming back in (refund).
+        val (tx, _) = NotificationParser.parse(
+            "com.bank", "",
+            "\$-100.00 reversed on your card",
+            enabledRules = emptyList()
+        )
+        assertNotNull(tx)
+        assertEquals(100.00, tx!!.amount, 0.001)
+        assertTrue("negative amount should be treated as income", tx.isIncome)
+    }
+
+    @Test fun heuristic_absolute_value_always_returned() {
+        // Cashew expects a positive amount; the sign is conveyed via isIncome.
+        val (tx, _) = NotificationParser.parse(
+            "com.bank", "", "-\$42.50 charged", enabledRules = emptyList()
+        )
+        assertEquals(42.50, tx!!.amount, 0.001)
+    }
+
+    @Test fun rule_negative_amount_flips_to_income_when_autoDetect_off() {
+        val r = rule(pkg = "com.x",
+            amountRegex = """\$(-?\d+\.?\d*)""",
+            isIncome = false)
+        val (tx, _) = NotificationParser.parse(
+            "com.x", "", "\$-25.00 reversed", enabledRules = listOf(r)
+        )
+        assertNotNull(tx)
+        assertEquals(25.00, tx!!.amount, 0.001)
+        assertTrue("rule amount with minus sign flips isIncome", tx.isIncome)
+    }
+
+    @Test fun rule_positive_amount_respects_isIncome_flag() {
+        // Regression: positive amount must still honour the rule's isIncome.
+        val r = rule(pkg = "com.x",
+            amountRegex = """\$(-?\d+\.?\d*)""",
+            isIncome = false)
+        val (tx, _) = NotificationParser.parse(
+            "com.x", "", "\$25.00 charged", enabledRules = listOf(r)
+        )
+        assertFalse(tx!!.isIncome)
+    }
+
+    // ── Consolidated currency regex (#12) ────────────────────────────────────
+
+    @Test fun case_insensitive_usd_prefix_matches() {
+        // Previously required two patterns (USD|usd); consolidation with (?i)
+        // should preserve behaviour.
+        val (lower, _) = NotificationParser.parse(
+            "x", "", "usd 42.00 debited", enabledRules = emptyList()
+        )
+        assertEquals("USD", lower!!.currency)
+        assertEquals(42.00, lower.amount, 0.001)
+    }
+
+    @Test fun case_insensitive_jpy_prefix_matches() {
+        val (tx, _) = NotificationParser.parse(
+            "x", "", "jpy 1000 received", enabledRules = emptyList()
+        )
+        assertEquals("JPY", tx!!.currency)
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     @Test fun normalizeMerchant_strips_trailing_punctuation_and_titlecases() {

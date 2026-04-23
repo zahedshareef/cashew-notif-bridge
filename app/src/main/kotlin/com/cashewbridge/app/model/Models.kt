@@ -1,10 +1,10 @@
 package com.cashewbridge.app.model
 
-import android.os.Parcel
 import android.os.Parcelable
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.parcelize.Parcelize
 
 /**
  * A fully parsed transaction ready to be forwarded to Cashew.
@@ -35,6 +35,7 @@ data class ParsedTransaction(
  *  [maxAmountFilter]  — rule only fires if parsed amount <= this (0 = no upper bound)
  *  [currencyOverride] — if set, overrides the auto-detected currency (e.g. "INR")
  */
+@Parcelize
 @Entity(tableName = "rules")
 data class NotificationRule(
     @PrimaryKey(autoGenerate = true)
@@ -67,67 +68,7 @@ data class NotificationRule(
     val maxAmountFilter: Double = 0.0,
     /** If non-blank, overrides auto-detected currency (#1) */
     val currencyOverride: String = ""
-) : Parcelable {
-
-    constructor(parcel: Parcel) : this(
-        id = parcel.readLong(),
-        name = parcel.readString() ?: "",
-        packageName = parcel.readString() ?: "",
-        titleContains = parcel.readString() ?: "",
-        bodyContains = parcel.readString() ?: "",
-        amountRegex = parcel.readString() ?: "",
-        merchantRegex = parcel.readString() ?: "",
-        defaultCategory = parcel.readString() ?: "",
-        defaultWalletName = parcel.readString() ?: "",
-        isIncome = parcel.readByte() != 0.toByte(),
-        isEnabled = parcel.readByte() != 0.toByte(),
-        priority = parcel.readInt(),
-        autoDetectType = parcel.readByte() != 0.toByte(),
-        conditionLogic = parcel.readInt(),
-        cooldownMinutes = parcel.readInt(),
-        activeStartHour = parcel.readInt(),
-        activeEndHour = parcel.readInt(),
-        activeDaysOfWeek = parcel.readInt(),
-        noteRegex = parcel.readString() ?: "",
-        senderContains = parcel.readString() ?: "",
-        minAmountFilter = parcel.readDouble(),
-        maxAmountFilter = parcel.readDouble(),
-        currencyOverride = parcel.readString() ?: ""
-    )
-
-    override fun writeToParcel(parcel: Parcel, flags: Int) {
-        parcel.writeLong(id)
-        parcel.writeString(name)
-        parcel.writeString(packageName)
-        parcel.writeString(titleContains)
-        parcel.writeString(bodyContains)
-        parcel.writeString(amountRegex)
-        parcel.writeString(merchantRegex)
-        parcel.writeString(defaultCategory)
-        parcel.writeString(defaultWalletName)
-        parcel.writeByte(if (isIncome) 1 else 0)
-        parcel.writeByte(if (isEnabled) 1 else 0)
-        parcel.writeInt(priority)
-        parcel.writeByte(if (autoDetectType) 1 else 0)
-        parcel.writeInt(conditionLogic)
-        parcel.writeInt(cooldownMinutes)
-        parcel.writeInt(activeStartHour)
-        parcel.writeInt(activeEndHour)
-        parcel.writeInt(activeDaysOfWeek)
-        parcel.writeString(noteRegex)
-        parcel.writeString(senderContains)
-        parcel.writeDouble(minAmountFilter)
-        parcel.writeDouble(maxAmountFilter)
-        parcel.writeString(currencyOverride)
-    }
-
-    override fun describeContents() = 0
-
-    companion object CREATOR : Parcelable.Creator<NotificationRule> {
-        override fun createFromParcel(parcel: Parcel) = NotificationRule(parcel)
-        override fun newArray(size: Int) = arrayOfNulls<NotificationRule>(size)
-    }
-}
+) : Parcelable
 
 @Entity(
     tableName = "logs",
